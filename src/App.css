@@ -1,0 +1,97 @@
+
+/* YELO Theme Styles */
+
+body {
+  background-color: #fdfcf8;
+  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* General Card Style */
+.modal-card {
+  background-color: #fffde7;
+  border: 2px solid #fdd835;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: #333;
+}
+
+.modal-card:hover {
+  background-color: #fff9c4;
+  transform: translateY(-2px);
+}
+
+/* Buttons */
+button {
+  background-color: #fdd835;
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: background 0.2s ease;
+}
+
+button:hover {
+  background-color: #ffee58;
+}
+
+/* Inputs */
+input[type="text"],
+input[type="file"] {
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* Table Styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: #ffffff;
+  font-size: 14px;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background-color: #ffecb3;
+  font-weight: bold;
+}
+
+tr:hover {
+  background-color: #fff8e1;
+}
+
+/* Headings */
+h2, h3 {
+  color: #333;
+  margin-top: 0;
+}
+
+ul {
+  padding-left: 18px;
+  margin: 0;
+}
+
+li {
+  margin-bottom: 6px;
+  cursor: pointer;
+  color: #333;
+}
+
+li:hover {
+  text-decoration: underline;
+}
