@@ -1,6 +1,6 @@
 import './App.css';
 import React, { useState, useEffect, useRef } from 'react';
-import FleetReportFinalFull from './components/FleetReportFinalFull';
+import FleetReportRefactored from './components/FleetReportRefactored';
 
 export default function App() {
   const [messages, setMessages] = useState([]);
@@ -95,7 +95,7 @@ AI:`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '50vh', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
-      <FleetReportFinalFull onDataLoaded={setFleetData} />
+      <FleetReportRefactored onDataLoaded={setFleetData} />
 
       <a
         href="https://moalamir52.github.io/Yelo/#dashboard"
