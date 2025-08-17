@@ -1,3 +1,0 @@
-git clone --mirror https://github.com/moalamir52/Summary.git
-cd Summary.git
-java -jar path C:\project\Summary\src\bfg-1.15.0.jar --delete-files App.jsx

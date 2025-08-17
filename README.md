@@ -1,12 +1,60 @@
-# React + Vite
+# YELO Fleet Report
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+تطبيق ويب لإدارة وتحليل بيانات الأسطول باستخدام React + Vite
 
-Currently, two official plugins are available:
+## المميزات
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- 📊 تحليل بيانات الأسطول
+- 🔍 البحث الذكي في البيانات
+- 📈 إحصائيات وملخصات تفاعلية
+- 📤 تصدير البيانات إلى Excel
+- 🎨 واجهة مستخدم جميلة بألوان YELO
 
-## Expanding the ESLint configuration
+## التشغيل المحلي
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### المتطلبات
+- Node.js (الإصدار 16 أو أحدث)
+- npm أو yarn
+
+### خطوات التشغيل
+
+1. تثبيت المكتبات:
+```bash
+npm install
+```
+
+2. تشغيل السيرفر المحلي:
+```bash
+npm run dev
+```
+
+3. فتح المتصفح على:
+```
+http://localhost:5173
+```
+
+## كيفية الاستخدام
+
+1. **رفع الملف**: اختر ملف Excel يحتوي على بيانات الأسطول
+2. **البحث**: استخدم مربع البحث للعثور على سيارات محددة
+3. **البحث الذكي**: اضغط على "ذكي" لرؤية تصنيفات البيانات
+4. **الملخص**: اضغط على "ملخص" لرؤية إحصائيات النماذج
+5. **التصدير**: اضغط على "تصدير" لحفظ النتائج في ملف Excel
+
+## البنية التقنية
+
+- **React 18**: مكتبة واجهة المستخدم
+- **Vite**: أداة البناء والتطوير
+- **XLSX**: معالجة ملفات Excel
+- **CSS3**: التصميم والتنسيق
+
+## الملفات المهمة
+
+- `src/App.jsx` - المكون الرئيسي
+- `src/components/FleetReportFinalFull.jsx` - مكون تقرير الأسطول
+- `src/App.css` - ملف التصميم الرئيسي
+- `package.json` - إعدادات المشروع والمكتبات
+
+## المطور
+
+تم تطوير هذا التطبيق لشركة YELO لإدارة الأسطول بكفاءة عالية.
