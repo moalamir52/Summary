@@ -1,16 +1,16 @@
-// ✅ Fleet Report — YELO Themed with Header, Home Button, and Full UI
+// ✅ تطبيق تقرير الأسطول - YELO مع واجهة كاملة
 
 import React, { useState, useRef, useEffect } from "react";
 import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
 import * as XLSX from "xlsx";
 
-// Helper function to colorize Invygo/YELO text
+// 🎨 دالة تلوين النصوص - تحويل INVYGO و YELO لألوان مميزة
 const colorizeInvygoYelo = (text) => {
   if (!text) return text;
   const str = String(text);
   if (str.toUpperCase().includes('INVYGO')) {
-    return <span style={{ color: '#1976d2', fontWeight: 'bold' }}>{str}</span>;
+    return <span style={{ color: '#1976d2', fontWeight: 'bold' }}>INVYGO</span>;
   }
   if (str.toUpperCase().includes('YELO')) {
     return <span style={{ color: '#ffb300', fontWeight: 'bold' }}>{str}</span>;
@@ -18,116 +18,80 @@ const colorizeInvygoYelo = (text) => {
   return str;
 };
 
-// دالة فتح بحث جوجل للصور
+// 🔍 دالة البحث عن صور السيارات في جوجل
 const searchCarImage = (model, year, color) => {
   const searchQuery = `${model} ${year || ''} ${color || ''} car`.trim();
   const googleImageUrl = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(searchQuery)}`;
   window.open(googleImageUrl, '_blank');
 };
 
+// 📊 المكون الرئيسي لتطبيق تقرير الأسطول
 export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }) {
-  const [data, setData] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filtered, setFiltered] = useState([]);
-  const [summary, setSummary] = useState(null);
-  const [modelSummary, setModelSummary] = useState([]);
-  const [showFiltered, setShowFiltered] = useState(false);
-  const [showSummaryCards, setShowSummaryCards] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalContent, setModalContent] = useState(null);
-  const [selectedClass, setSelectedClass] = useState(null);
-  const [selectedMake, setSelectedMake] = useState(null);
-  const [view, setView] = useState('search');
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(null);
-  const [expiryModalOpen, setExpiryModalOpen] = useState(false);
-  const [expiryMonth, setExpiryMonth] = useState('');
-  const [expiryYear, setExpiryYear] = useState('');
-  // State لتحديد الموديل المختار في ملخص الموديلات
-  const [selectedSummaryModel, setSelectedSummaryModel] = useState(null);
-  // 1. أضف state جديد لعدد السيارات المنتهية حتى اليوم أو حسب الفلتر
-  const [expiryCount, setExpiryCount] = useState(0);
-  const [expiryFiltered, setExpiryFiltered] = useState(null); // null = لا يوجد فلتر، [] = فلتر مفعل
-  const [showExpiryTable, setShowExpiryTable] = useState(false);
-  // 1. أضف state لعرض جدول نتائج زر Cars Expiry
-  const [expiryModalTable, setExpiryModalTable] = useState(null); // null = لا شيء، [] = نتائج
-  // 1. State جديد لتاريخ الاكسبيري
-  const [expiryDate, setExpiryDate] = useState(''); // yyyy-mm-dd
-  const [expiryDateResult, setExpiryDateResult] = useState(null); // { cars: [], date: ... }
-  const [showExpiryDateDetails, setShowExpiryDateDetails] = useState(false);
-  // 1. State جديد للكروت الملخصة الدائمة
-  const [summaryAll, setSummaryAll] = useState(null);
-  const [modelSummaryAll, setModelSummaryAll] = useState([]);
-  // 1. State جديد لتتبع أي جدول تفاصيل ملخص ظاهر
-  const [showSummaryDetail, setShowSummaryDetail] = useState(null); // 'total' | 'invygo' | 'yelo' | null
+  // 💾 متغيرات الحالة الأساسية
+  const [data, setData] = useState([]); // بيانات الأسطول الرئيسية
+  const [searchTerm, setSearchTerm] = useState(""); // نص البحث
+  const [filtered, setFiltered] = useState([]); // نتائج البحث المفلترة
+  const [summary, setSummary] = useState(null); // ملخص عام
+  const [modelSummary, setModelSummary] = useState([]); // ملخص الموديلات
+  const [showFiltered, setShowFiltered] = useState(false); // عرض نتائج البحث
+  const [showSummaryCards, setShowSummaryCards] = useState(false); // عرض كروت الملخص
+  const [modalOpen, setModalOpen] = useState(false); // فتح النافذة المنبثقة
+  const [modalContent, setModalContent] = useState(null); // محتوى النافذة
+  
+  // 🧠 متغيرات التنقل الذكي (Smart Navigation)
+  const [selectedClass, setSelectedClass] = useState(null); // الفئة المختارة
+  const [selectedMake, setSelectedMake] = useState(null); // الموديل المختار
+  const [view, setView] = useState('search'); // العرض الحالي: search/smart/summary
+  
+  // 📅 متغيرات التواريخ والانتهاء
+  const [selectedMonth, setSelectedMonth] = useState(null); // الشهر المختار
+  const [selectedYear, setSelectedYear] = useState(null); // السنة المختارة
+  const [expiryModalOpen, setExpiryModalOpen] = useState(false); // فتح نافذة الانتهاء
+  const [expiryMonth, setExpiryMonth] = useState(''); // شهر الانتهاء
+  const [expiryYear, setExpiryYear] = useState(''); // سنة الانتهاء
+  const [expiryDate, setExpiryDate] = useState(''); // تاريخ الانتهاء (yyyy-mm-dd)
+  const [expiryDateResult, setExpiryDateResult] = useState(null); // نتائج الانتهاء حسب التاريخ
+  const [showExpiryDateDetails, setShowExpiryDateDetails] = useState(false); // عرض تفاصيل الانتهاء
+  const [expiryCount, setExpiryCount] = useState(0); // عدد السيارات المنتهية
+  const [expiryFiltered, setExpiryFiltered] = useState(null); // فلتر الانتهاء
+  const [showExpiryTable, setShowExpiryTable] = useState(false); // عرض جدول الانتهاء
+  const [expiryModalTable, setExpiryModalTable] = useState(null); // جدول نافذة الانتهاء
+  
+  // 📊 متغيرات الملخصات والإحصائيات
+  const [selectedSummaryModel, setSelectedSummaryModel] = useState(null); // الموديل المختار في الملخص
+  const [summaryAll, setSummaryAll] = useState(null); // الملخص العام الدائم
+  const [modelSummaryAll, setModelSummaryAll] = useState([]); // ملخص جميع الموديلات
+  const [showSummaryDetail, setShowSummaryDetail] = useState(null); // عرض تفاصيل الملخص: 'total'|'invygo'|'yelo'|null
 
-  // إضافة states للفلاتر مثل الإكسيل لكل جدول
-  const [tableFilters, setTableFilters] = useState({
-    model: '',
-    year: '',
-    color: '',
-    plateNo: '',
-    rentalRate: '',
-    chassisNo: '',
-    regExp: '',
-    insurExp: '',
-    remarks: ''
+  // 🔍 متغيرات فلاتر الجداول (مثل الإكسيل)
+  const [tableFilters, setTableFilters] = useState({ // فلاتر جدول البحث الرئيسي
+    class: '', manufacturer: '', model: '', year: '', color: '',
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
   });
 
-  // فلاتر لجدول Smart Navigation
-  const [smartTableFilters, setSmartTableFilters] = useState({
-    model: '',
-    year: '',
-    color: '',
-    plateNo: '',
-    rentalRate: '',
-    chassisNo: '',
-    regExp: '',
-    insurExp: '',
-    remarks: ''
+  const [smartTableFilters, setSmartTableFilters] = useState({ // فلاتر جدول التنقل الذكي
+    class: '', manufacturer: '', model: '', year: '', color: '',
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
   });
 
-  // فلاتر لجدول Summary
-  const [summaryTableFilters, setSummaryTableFilters] = useState({
-    model: '',
-    year: '',
-    color: '',
-    plateNo: '',
-    rentalRate: '',
-    chassisNo: '',
-    regExp: '',
-    insurExp: '',
-    remarks: ''
+  const [summaryTableFilters, setSummaryTableFilters] = useState({ // فلاتر جدول الملخص
+    class: '', manufacturer: '', model: '', year: '', color: '',
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
   });
 
-  // فلاتر لجدول Expiry
-  const [expiryTableFilters, setExpiryTableFilters] = useState({
-    model: '',
-    year: '',
-    color: '',
-    plateNo: '',
-    rentalRate: '',
-    chassisNo: '',
-    regExp: '',
-    insurExp: '',
-    remarks: ''
+  const [expiryTableFilters, setExpiryTableFilters] = useState({ // فلاتر جدول الانتهاء
+    class: '', manufacturer: '', model: '', year: '', color: '',
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
   });
 
-  // فلاتر لجدول تفاصيل الكروت
-  const [detailTableFilters, setDetailTableFilters] = useState({
-    model: '',
-    year: '',
-    color: '',
-    plateNo: '',
-    rentalRate: '',
-    chassisNo: '',
-    regExp: '',
-    insurExp: '',
-    remarks: ''
+  const [detailTableFilters, setDetailTableFilters] = useState({ // فلاتر جدول تفاصيل الكروت
+    class: '', manufacturer: '', model: '', year: '', color: '',
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
   });
 
-  const cardColors = ['#ffe082', '#ce93d8', '#b3e5fc', '#c8e6c9', '#ffccbc', '#f8bbd0', '#fff9c4', '#b2dfdb'];
-  const [searchCardColor, setSearchCardColor] = useState(cardColors[0]);
+  // 🎨 ألوان الكروت والعرض
+  const cardColors = ['#ffe082', '#ce93d8', '#b3e5fc', '#c8e6c9', '#ffccbc', '#f8bbd0', '#fff9c4', '#b2dfdb']; // مجموعة ألوان الكروت
+  const [searchCardColor, setSearchCardColor] = useState(cardColors[0]); // لون كارت البحث
 
 
   const formatDate = (value) => {
@@ -150,23 +114,26 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
     const modelInvygo = {};
     validRows.forEach(r => {
       if (!r.Model || r.Model === "56" || r.Model === "") return;
-      modelCounts[r.Model] = (modelCounts[r.Model] || 0) + 1;
-      if (r.isInvygo) modelInvygo[r.Model] = (modelInvygo[r.Model] || 0) + 1;
+      const key = `${r.Manufacturer || 'Unknown'}-${r.Model}`;
+      modelCounts[key] = (modelCounts[key] || 0) + 1;
+      if (r.isInvygo) modelInvygo[key] = (modelInvygo[key] || 0) + 1;
     });
 
-    const modelSummaryData = Object.keys(modelCounts).map(model => {
-      const relatedCars = validRows.filter(r => r.Model === model);
+    const modelSummaryData = Object.keys(modelCounts).map(key => {
+      const [manufacturer, model] = key.split('-');
+      const relatedCars = validRows.filter(r => (r.Manufacturer || 'Unknown') === manufacturer && r.Model === model);
       const daily = average(relatedCars.map(r => Number(r.RentPerDay)));
       const monthly = average(relatedCars.map(r => Number(r.RentPerMonth)));
       const yearly = average(relatedCars.map(r => Number(r.RentPerYear)));
       return {
+        manufacturer,
         model,
-        total: modelCounts[model],
-        invygo: modelInvygo[model] || 0,
+        total: modelCounts[key],
+        invygo: modelInvygo[key] || 0,
         daily: daily ? daily.toFixed(0) : '-',
         monthly: monthly ? monthly.toFixed(0) : '-',
         yearly: yearly ? yearly.toFixed(0) : '-',
-        yellow: modelCounts[model] - (modelInvygo[model] || 0)
+        yellow: modelCounts[key] - (modelInvygo[key] || 0)
       };
     }).sort((a, b) => b.total - a.total);
 
@@ -174,38 +141,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
     setModelSummary(modelSummaryData);
     setShowSummaryCards(true);
   };
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file || !(file instanceof Blob)) return alert("Invalid file.");
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const bstr = evt.target.result;
-      const workbook = XLSX.read(bstr, { type: "array" });
-      const sheet = workbook.Sheets["Fleet DXB"];
-      const raw = XLSX.utils.sheet_to_json(sheet);
-      const cleaned = raw.map(r => ({
-        ...r,
-        PlateNoClean: String(r["Plate No"] || "").replace(/\s/g, "").toUpperCase(),
-        RegDate: formatDate(r["Reg Date"]),
-        ExpDate: formatDate(r["Exp Date"]),
-        SaleDate: formatDate(r["Sale Date"]),
-        Remarks: String(r.Remarks || "").toUpperCase(),
-        isInvygo: String(r.Remarks || "").toUpperCase().includes("INVYGO")
-      }));
-      setData(cleaned);
-      console.log("✅ Cleaned data loaded", cleaned.length, cleaned[0]);
-      setFiltered([]);
-      setSummary(null);
-      setModelSummary([]);
-      analyze(cleaned);
-      setShowFiltered(false);
-      setShowSmart(false);
-      if (typeof onDataLoaded === "function") onDataLoaded(cleaned);
-
-
-    };
-    reader.readAsArrayBuffer(file);
-  };
+  
 
   // Export
   const handleExport = () => {
@@ -270,6 +206,10 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
         const matchesAny = (fieldStr) => filterValues.some(val => fieldStr.includes(val));
         
         switch (key) {
+          case 'class':
+            return matchesAny(String(row.Class || row.class || '').toLowerCase());
+          case 'manufacturer':
+            return matchesAny(String(row.Manufacturer || row.manufacturer || '').toLowerCase());
           case 'model':
             return matchesAny(String(row.Model || row.model || '').toLowerCase());
           case 'year':
@@ -350,6 +290,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
   // دالة مسح جميع الفلاتر
   const clearAllFilters = () => {
     setTableFilters({
+      class: '',
+      manufacturer: '',
       model: '',
       year: '',
       color: '',
@@ -365,6 +307,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
   // دالة مسح فلاتر Smart Navigation
   const clearSmartFilters = () => {
     setSmartTableFilters({
+      class: '',
+      manufacturer: '',
       model: '',
       year: '',
       color: '',
@@ -380,6 +324,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
   // دالة مسح فلاتر Summary
   const clearSummaryFilters = () => {
     setSummaryTableFilters({
+      class: '',
+      manufacturer: '',
       model: '',
       year: '',
       color: '',
@@ -395,6 +341,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
   // دالة مسح فلاتر Expiry
   const clearExpiryFilters = () => {
     setExpiryTableFilters({
+      class: '',
+      manufacturer: '',
       model: '',
       year: '',
       color: '',
@@ -410,6 +358,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
   // دالة مسح فلاتر تفاصيل الكروت
   const clearDetailFilters = () => {
     setDetailTableFilters({
+      class: '',
+      manufacturer: '',
       model: '',
       year: '',
       color: '',
@@ -432,23 +382,26 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
       const modelInvygo = {};
       validRows.forEach(r => {
         if (!r.Model || r.Model === "56" || r.Model === "") return;
-        modelCounts[r.Model] = (modelCounts[r.Model] || 0) + 1;
-        if (r.isInvygo) modelInvygo[r.Model] = (modelInvygo[r.Model] || 0) + 1;
+        const key = `${r.Manufacturer || 'Unknown'}-${r.Model}`;
+        modelCounts[key] = (modelCounts[key] || 0) + 1;
+        if (r.isInvygo) modelInvygo[key] = (modelInvygo[key] || 0) + 1;
       });
 
-      const modelSummaryData = Object.keys(modelCounts).map(model => {
-        const relatedCars = validRows.filter(r => r.Model === model);
+      const modelSummaryData = Object.keys(modelCounts).map(key => {
+        const [manufacturer, model] = key.split('-');
+        const relatedCars = validRows.filter(r => (r.Manufacturer || 'Unknown') === manufacturer && r.Model === model);
         const daily = average(relatedCars.map(r => Number(r.RentPerDay)));
         const monthly = average(relatedCars.map(r => Number(r.RentPerMonth)));
         const yearly = average(relatedCars.map(r => Number(r.RentPerYear)));
         return {
+          manufacturer,
           model,
-          total: modelCounts[model],
-          invygo: modelInvygo[model] || 0,
+          total: modelCounts[key],
+          invygo: modelInvygo[key] || 0,
           daily: daily ? daily.toFixed(0) : '-',
           monthly: monthly ? monthly.toFixed(0) : '-',
           yearly: yearly ? yearly.toFixed(0) : '-',
-          yellow: modelCounts[model] - (modelInvygo[model] || 0)
+          yellow: modelCounts[key] - (modelInvygo[key] || 0)
         };
       }).sort((a, b) => b.total - a.total);
 
@@ -498,9 +451,10 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
     } else if (tokens.length >= 2) {
       // تحقق إذا كان أول كلمة اسم حقل معروف
       const fieldMap = {
+        'class': 'Class', 'cls': 'Class',
+        'manufacturer': 'Manufacturer', 'mfg': 'Manufacturer',
         'model': 'Model', 'mod': 'Model', 'mdl': 'Model',
         'color': 'Color', 'col': 'Color',
-        'class': 'Class', 'cls': 'Class',
         'plate': 'Plate No', 'pl': 'Plate No', 'plt': 'Plate No', 'plate_no': 'Plate No', 'plate number': 'Plate No',
         'remarks': 'Remarks', 'rem': 'Remarks',
         'chassis': 'Chassis no.', 'chassisno': 'Chassis no.', 'chassis_no': 'Chassis no.', 'chs': 'Chassis no.', 'chno': 'Chassis no.',
@@ -667,38 +621,39 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
 
   return (
     <div style={{ fontFamily: 'sans-serif' }}>
-      {/* Navigation Buttons */}
+      {/* 🔙 زر العودة إلى YELO - ثابت في أعلى الشاشة شمال */}
+      <a
+        href="https://moalamir52.github.io/Yelo/#dashboard"
+        style={{
+          position: 'fixed', top: '20px', left: '20px', zIndex: 1000,
+          display: 'inline-block', backgroundColor: '#ffd600', color: '#6a1b9a',
+          padding: '10px 20px', textDecoration: 'none', fontWeight: 'bold',
+          borderRadius: '8px', border: '2px solid #6a1b9a',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}
+      >
+        ← Back to YELO
+      </a>
+      
+      {/* 🧠 مربع أزرار التنقل الرئيسية - ثابت في أعلى الصفحة */}
       <div
         style={{
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-          background: 'rgba(255,255,255,0.95)',
-          boxShadow: '0 2px 16px #fdd83533',
-          padding: '24px 0 18px 0',
-          marginBottom: '18px',
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'center',
-          maxWidth: '800px',
-          margin: '0 auto 18px auto',
-          borderRadius: '20px'
+          position: 'sticky', top: 0, zIndex: 100,
+          background: '#fff8e1', // أصفر ذهبي أغمق قليلاً
+          boxShadow: '0 4px 12px rgb(92, 7, 248)', // تظليل بنفسجي
+          padding: '24px 0 18px 0', marginBottom: '18px',
+          display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+          maxWidth: '800px', margin: '0 auto 18px auto', borderRadius: '20px'
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'center', gap: '32px' }}>
+          {/* 🏠 زر الصفحة الرئيسية - البحث والكروت */}
           <button
             onClick={() => { setView('search'); setSelectedClass(null); setSelectedMake(null); }}
             style={{
-              fontSize: '1.35rem',
-              fontWeight: 'bold',
-              padding: '18px 38px',
-              borderRadius: '14px',
-              background: '#ffde38',
-              color: '#111',
-              border: 'none',
-              boxShadow: '0 2px 8px #b39ddb55',
-              cursor: 'pointer',
+              fontSize: '1.35rem', fontWeight: 'bold', padding: '18px 38px', borderRadius: '14px',
+              background: '#ffd600', color: '#111', border: 'none',
+              boxShadow: '0 2px 8px #b39ddb55', cursor: 'pointer',
               transition: 'transform 0.13s, box-shadow 0.13s'
             }}
             onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.07)'; }}
@@ -706,18 +661,14 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
           >
             Home
           </button>
+          
+          {/* 🧠 زر التنقل الذكي - تصفح بالفئات والموديلات */}
           <button
             onClick={() => { setView('smart'); setSelectedClass(null); setSelectedMake(null); }}
             style={{
-              fontSize: '1.35rem',
-              fontWeight: 'bold',
-              padding: '18px 38px',
-              borderRadius: '14px',
-              background: '#7b1fa2',
-              color: '#ffde38',
-              border: 'none',
-              boxShadow: '0 2px 8px #b39ddb55',
-              cursor: 'pointer',
+              fontSize: '1.35rem', fontWeight: 'bold', padding: '18px 38px', borderRadius: '14px',
+              background: '#7b1fa2', color: '#ffde38', border: 'none',
+              boxShadow: '0 2px 8px #b39ddb55', cursor: 'pointer',
               transition: 'transform 0.13s, box-shadow 0.13s'
             }}
             onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.07)'; }}
@@ -725,18 +676,14 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
           >
             Smart
           </button>
+          
+          {/* 📊 زر الملخص - إحصائيات الموديلات */}
           <button
             onClick={() => { setView('summary'); setSelectedClass(null); setSelectedMake(null); setSelectedSummaryModel(null); }}
             style={{
-              fontSize: '1.35rem',
-              fontWeight: 'bold',
-              padding: '18px 38px',
-              borderRadius: '14px',
-              background: '#ffde38',
-              color: '#111',
-              border: 'none',
-              boxShadow: '0 2px 8px #b39ddb55',
-              cursor: 'pointer',
+              fontSize: '1.35rem', fontWeight: 'bold', padding: '18px 38px', borderRadius: '14px',
+              background: '#ffd600', color: '#111', border: 'none',
+              boxShadow: '0 2px 8px #b39ddb55', cursor: 'pointer',
               transition: 'transform 0.13s, box-shadow 0.13s'
             }}
             onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.07)'; }}
@@ -744,19 +691,14 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
           >
             Summary
           </button>
-          {/* New Expiry Button */}
+          
+          {/* 📅 زر انتهاء السيارات - فتح نافذة اختيار التاريخ */}
           <button
             onClick={() => setExpiryModalOpen(true)}
             style={{
-              fontSize: '1.35rem',
-              fontWeight: 'bold',
-              padding: '18px 38px',
-              borderRadius: '14px',
-              background: '#7b1fa2',
-              color: '#ffde38',
-              border: 'none',
-              boxShadow: '0 2px 8pxrgb(224, 221, 39)',
-              cursor: 'pointer',
+              fontSize: '1.35rem', fontWeight: 'bold', padding: '18px 38px', borderRadius: '14px',
+              background: '#7b1fa2', color: '#ffde38', border: 'none',
+              boxShadow: '0 2px 8pxrgb(224, 221, 39)', cursor: 'pointer',
               transition: 'transform 0.13s, box-shadow 0.13s'
             }}
             onMouseOver={e => { e.currentTarget.style.transform = 'scale(1.07)'; }}
@@ -1026,11 +968,12 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                   <thead>
                     <tr style={{ background: '#ffe082', color: '#7b1fa2', fontWeight: 'bold' }}>
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>#</th>
-                      <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo('Model')}</th>
-                      <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Plate No</th>
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Class</th>
-                      <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo('Color')}</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo('Manufacturer')}</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo('Model')}</th>
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo('Year')}</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Plate No</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo('Color')}</th>
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Reg Expiry</th>
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Insur Expiry</th>
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Mortgage</th>
@@ -1059,9 +1002,54 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                       <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
                         <input
                           type="text"
+                          placeholder="Filter Class"
+                          value={smartTableFilters.class}
+                          onChange={(e) => updateSmartFilter('class', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '4px',
+                            fontSize: '0.8rem',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                        <input
+                          type="text"
+                          placeholder="Filter Manufacturer"
+                          value={smartTableFilters.manufacturer}
+                          onChange={(e) => updateSmartFilter('manufacturer', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '4px',
+                            fontSize: '0.8rem',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                        <input
+                          type="text"
                           placeholder="Filter Model"
                           value={smartTableFilters.model}
                           onChange={(e) => updateSmartFilter('model', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '4px',
+                            fontSize: '0.8rem',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                        <input
+                          type="text"
+                          placeholder="Filter Year"
+                          value={smartTableFilters.year}
+                          onChange={(e) => updateSmartFilter('year', e.target.value)}
                           style={{
                             width: '100%',
                             padding: '4px',
@@ -1089,39 +1077,9 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                       <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
                         <input
                           type="text"
-                          placeholder="Filter Class"
-                          value={smartTableFilters.class}
-                          onChange={(e) => updateSmartFilter('class', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '4px',
-                            fontSize: '0.8rem',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px'
-                          }}
-                        />
-                      </td>
-                      <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
-                        <input
-                          type="text"
                           placeholder="Filter Color"
                           value={smartTableFilters.color}
                           onChange={(e) => updateSmartFilter('color', e.target.value)}
-                          style={{
-                            width: '100%',
-                            padding: '4px',
-                            fontSize: '0.8rem',
-                            border: '1px solid #ccc',
-                            borderRadius: '4px'
-                          }}
-                        />
-                      </td>
-                      <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
-                        <input
-                          type="text"
-                          placeholder="Filter Year"
-                          value={smartTableFilters.year}
-                          onChange={(e) => updateSmartFilter('year', e.target.value)}
                           style={{
                             width: '100%',
                             padding: '4px',
@@ -1197,6 +1155,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                       {applyFilters(data.filter(car => car.Class === selectedClass && car.Model === selectedMake), smartTableFilters).map((car, i) => (
                       <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f5f5f5' }}>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{i + 1}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Class || '-'}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Manufacturer || '-'}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
                           {colorizeInvygoYelo(car.Model)}
                           <span 
@@ -1207,10 +1167,9 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                             🔍
                           </span>
                         </td>
-                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Plate No"] || '-'}</td>
-                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Class || '-'}</td>
-                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Color || '-'}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Year Model"] || '-'}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Plate No"] || '-'}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Color || '-'}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.RegExp || '-'}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.InsurExp || '-'}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Mortgage || '-'}</td>
@@ -1244,125 +1203,125 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
         <div>
           <header
             style={{
-              padding: '30px 40px',
-              borderRadius: '20px',
-              background: '#fdd835',
-              color: '#000',
-              fontWeight: 'bold',
-              fontSize: '20px',
+              background: '#ffd600',
               boxShadow: '0 4px 12px rgb(92, 7, 248)',
-              marginBottom: '30px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center'
+              padding: '40px 40px 30px 40px', marginBottom: '18px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              maxWidth: '800px', margin: '0 auto 18px auto', borderRadius: '20px',
+              minHeight: '120px', width: '90%'
             }}
           >
-            <h1 style={{ fontSize: '38px', margin: '0', color: '#6a1b9a' }}>YELO Fleet Report</h1>
-            <p style={{ fontSize: '16px', marginTop: '6px', color: '#7b1fa2' }}>
+            <h1 style={{ fontSize: '42px', margin: '0', color: '#6a1b9a', fontWeight: '700', fontFamily: 'Montserrat, Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', letterSpacing: '1px' }}>YELO Fleet Report</h1>
+            <p style={{ fontSize: '18px', marginTop: '8px', color: '#7b1fa2', fontWeight: '600', fontFamily: 'Montserrat, Poppins, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }}>
               Smart fleet insight powered by future AI intelligence 🚗
             </p>
           </header>
 
           <div style={{
-            padding: '15px 20px',
+            padding: '24px 0 18px 0',
             borderRadius: '20px',
-            background: '#fdd835',
+            background: '#ffd600',
             color: '#000',
             fontWeight: 'bold',
             fontSize: '16px',
             boxShadow: '0 4px 12px rgb(92, 7, 248)',
-            marginBottom: '30px',
+            marginBottom: '18px',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            maxWidth: '600px',
-            margin: '20px auto 30px auto'
+            maxWidth: '800px',
+            margin: '0 auto 18px auto'
           }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center' }}>
-              <input type="file" accept=".xlsx,.xls" onChange={handleFileUpload} />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              />
-              <button onClick={handleSearch}>Search</button>
-              <button onClick={() => fetchFromGoogleSheet()}>Reload Google Sheet</button>
-              <button onClick={handleExport}>Export</button>
-              <button onClick={() => {
-                setFiltered([]);
-                setShowFiltered(false);
-                setExpiryDateResult(null);
-                setShowExpiryDateDetails(false);
-                setExpiryModalTable(null);
-                setShowExpiryTable(false);
-                setExpiryFiltered(null);
-              }}>Reset</button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center' }}>
+              {/* 🔍 حقل البحث */}
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <input
+                  type="text" placeholder="Search..." value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                  style={{ padding: '12px 16px', borderRadius: '12px', border: '2px solid #6a1b9a', fontSize: '16px', width: '350px', fontFamily: 'Montserrat, Poppins, sans-serif', outline: 'none', transition: 'border-color 0.3s' }}
+                />
+              </div>
+              {/* ⚙️ أزرار العمليات الرئيسية */}
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button 
+                  onClick={handleSearch} 
+                  style={{ padding: '12px 24px', borderRadius: '10px', background: '#6a1b9a', color: '#fff', border: 'none', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(106, 27, 154, 0.3)' }}
+                  onMouseOver={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 6px 20px rgba(106, 27, 154, 0.4)'; }}
+                  onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 12px rgba(106, 27, 154, 0.3)'; }}
+                >🔍 Search</button>
+                <button 
+                  onClick={() => fetchFromGoogleSheet()} 
+                  style={{ padding: '12px 24px', borderRadius: '10px', background: '#f5e728ff', color: '#6a1b9a', border: '2px solid #ffd600', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(255, 214, 0, 0.3)' }}
+                  onMouseOver={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 6px 20px rgba(255, 214, 0, 0.4)'; }}
+                  onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 12px rgba(255, 214, 0, 0.3)'; }}
+                >🔄 Reload</button>
+                <button 
+                  onClick={handleExport} 
+                  style={{ padding: '12px 24px', borderRadius: '10px', background: '#6a1b9a', color: '#fff', border: 'none', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(106, 27, 154, 0.3)' }}
+                  onMouseOver={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 6px 20px rgba(106, 27, 154, 0.4)'; }}
+                  onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 12px rgba(106, 27, 154, 0.3)'; }}
+                >📤 Export</button>
+                <button 
+                  onClick={() => {
+                    setFiltered([]); setShowFiltered(false); setExpiryDateResult(null);
+                    setShowExpiryDateDetails(false); setExpiryModalTable(null);
+                    setShowExpiryTable(false); setExpiryFiltered(null);
+                  }} 
+                  style={{ padding: '12px 24px', borderRadius: '10px', background: '#f5e728ff', color: '#6a1b9a', border: '2px solid #ffd600', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(255, 214, 0, 0.3)' }}
+                  onMouseOver={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 6px 20px rgba(255, 214, 0, 0.4)'; }}
+                  onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 12px rgba(255, 214, 0, 0.3)'; }}
+                >🔄 Reset</button>
+              </div>
             </div>
           </div>
 
-          {/* Cards Summary */}
+          {/* 📊 كروت الملخص الرئيسية - عدد السيارات والانتهاء */}
           {showSummaryCards && summaryAll && (
             <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '20px' }}>
-              <div className="modal-card"
-                style={{ cursor: 'pointer' }}
+              {/* 📊 كارت إجمالي السيارات */}
+              <div className="modal-card" style={{ cursor: 'pointer' }}
                 onClick={() => {
                   setShowSummaryDetail(prev => prev === 'total' ? null : 'total');
-                  setShowExpiryTable(false);
-                  setShowFiltered(false);
-                  setExpiryDateResult(null);
-                  setExpiryModalTable(null);
-                  setExpiryFiltered(null);
-                  setSelectedSummaryModel(null);
+                  setShowExpiryTable(false); setShowFiltered(false); setExpiryDateResult(null);
+                  setExpiryModalTable(null); setExpiryFiltered(null); setSelectedSummaryModel(null);
                 }}
                 title="Show all cars details"
               >
                 <strong>Total Cars:</strong> {summaryAll.total}
               </div>
-              <div className="modal-card"
-                style={{ cursor: 'pointer' }}
+              
+              {/* 🔵 كارت سيارات Invygo */}
+              <div className="modal-card" style={{ cursor: 'pointer' }}
                 onClick={() => {
                   setShowSummaryDetail(prev => prev === 'invygo' ? null : 'invygo');
-                  setShowExpiryTable(false);
-                  setShowFiltered(false);
-                  setExpiryDateResult(null);
-                  setExpiryModalTable(null);
-                  setExpiryFiltered(null);
-                  setSelectedSummaryModel(null);
+                  setShowExpiryTable(false); setShowFiltered(false); setExpiryDateResult(null);
+                  setExpiryModalTable(null); setExpiryFiltered(null); setSelectedSummaryModel(null);
                 }}
                 title="Show Invygo cars details"
               >
                 <strong>Invygo Cars:</strong> {summaryAll.invygo}
               </div>
-              <div className="modal-card"
-                style={{ cursor: 'pointer' }}
+              
+              {/* 🟡 كارت سيارات YELO */}
+              <div className="modal-card" style={{ cursor: 'pointer' }}
                 onClick={() => {
                   setShowSummaryDetail(prev => prev === 'yelo' ? null : 'yelo');
-                  setShowExpiryTable(false);
-                  setShowFiltered(false);
-                  setExpiryDateResult(null);
-                  setExpiryModalTable(null);
-                  setExpiryFiltered(null);
-                  setSelectedSummaryModel(null);
+                  setShowExpiryTable(false); setShowFiltered(false); setExpiryDateResult(null);
+                  setExpiryModalTable(null); setExpiryFiltered(null); setSelectedSummaryModel(null);
                 }}
                 title="Show YELO cars details"
               >
                 <strong>YELO Cars:</strong> {summaryAll.total - summaryAll.invygo}
               </div>
-              <div
-                className="modal-card"
+              
+              {/* 📅 كارت السيارات المنتهية - لون أحمر */}
+              <div className="modal-card"
                 style={{ background: '#fffde7', border: '2px solid #ffe082', color: '#d32f2f', cursor: 'pointer', minWidth: 120 }}
                 onClick={() => {
-                  setShowExpiryTable(prev => !prev);
-                  setShowSummaryDetail(null);
-                  setShowFiltered(false);
-                  setExpiryDateResult(null);
-                  setExpiryModalTable(null);
-                  setExpiryFiltered(null);
-                  setSelectedSummaryModel(null);
+                  setShowExpiryTable(prev => !prev); setShowSummaryDetail(null); setShowFiltered(false);
+                  setExpiryDateResult(null); setExpiryModalTable(null); setExpiryFiltered(null); setSelectedSummaryModel(null);
                 }}
                 title="Show expired cars details"
               >
@@ -1407,10 +1366,12 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     <div style={{ fontWeight: 'bold', fontSize: '1.45rem', color: '#6a1b9a', marginBottom: 12, letterSpacing: '1px' }}>
                       🚗 {filtered[0].Model || '-'}
                     </div>
-                    <div><strong>Plate:</strong> <span style={{ color: '#222' }}>{filtered[0]["Plate No"] || '-'}</span></div>
                     <div><strong>Class:</strong> <span style={{ color: '#222' }}>{filtered[0].Class || '-'}</span></div>
-                    <div><strong>Color:</strong> <span style={{ color: '#222' }}>{filtered[0].Color || '-'}</span></div>
+                    <div><strong>Manufacturer:</strong> <span style={{ color: '#222' }}>{filtered[0].Manufacturer || '-'}</span></div>
+                    <div><strong>Model:</strong> <span style={{ color: '#222' }}>{filtered[0].Model || '-'}</span></div>
                     <div><strong>Year:</strong> <span style={{ color: '#222' }}>{filtered[0]["Year Model"] || '-'}</span></div>
+                    <div><strong>Plate:</strong> <span style={{ color: '#222' }}>{filtered[0]["Plate No"] || '-'}</span></div>
+                    <div><strong>Color:</strong> <span style={{ color: '#222' }}>{filtered[0].Color || '-'}</span></div>
                     <div><strong>Reg Exp:</strong> <span style={{ color: '#222' }}>{filtered[0].RegExp || '-'}</span></div>
                     <div><strong>Insur Exp:</strong> <span style={{ color: '#222' }}>{filtered[0].InsurExp || '-'}</span></div>
                     <div><strong>Mortgage:</strong> <span style={{ color: '#222' }}>{filtered[0].Mortgage || '-'}</span></div>
@@ -1420,7 +1381,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                 </div>
               ) : (
                 // عرض جدول إذا كانت النتائج أكثر من واحدة
-                <div style={{ width: '100%', maxWidth: '1100px', overflowX: 'auto' }}>
+                <div style={{ width: '100%', maxWidth: '1100px', overflowX: 'auto', margin: '0 auto' }}>
                   <table style={{
                     borderCollapse: 'collapse',
                     background: '#fffde7',
@@ -1433,6 +1394,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     <thead>
                       <tr style={{ background: '#ffe082', color: '#222', fontWeight: 'bold' }}>
                         <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>#</th>
+                        <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Class</th>
+                        <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Manufacturer</th>
                         <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Model</th>
                         <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Year</th>
                         <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Color</th>
@@ -1462,6 +1425,36 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                           >
                             Clear
                           </button>
+                        </td>
+                        <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                          <input
+                            type="text"
+                            placeholder="Filter Class"
+                            value={tableFilters.class}
+                            onChange={(e) => updateFilter('class', e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '4px',
+                              fontSize: '0.8rem',
+                              border: '1px solid #ccc',
+                              borderRadius: '4px'
+                            }}
+                          />
+                        </td>
+                        <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                          <input
+                            type="text"
+                            placeholder="Filter Manufacturer"
+                            value={tableFilters.manufacturer}
+                            onChange={(e) => updateFilter('manufacturer', e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '4px',
+                              fontSize: '0.8rem',
+                              border: '1px solid #ccc',
+                              borderRadius: '4px'
+                            }}
+                          />
                         </td>
                         <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
                           <input
@@ -1604,6 +1597,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                       {applyTableFilters(filtered).map((car, i) => (
                         <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f5f5f5', textAlign: 'center' }}>
                           <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{i + 1}</td>
+                          <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Class || '-'}</td>
+                          <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Manufacturer || '-'}</td>
                           <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', color: '#7b1fa2', fontWeight: 'bold' }}>
                             {colorizeInvygoYelo(car.Model)}
                             <span 
@@ -1653,6 +1648,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
               <thead>
                 <tr style={{ background: '#ffe082', color: '#222', fontWeight: 'bold' }}>
                   <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>#</th>
+                  <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Manufacturer</th>
                   <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Model</th>
                   <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Total</th>
                   <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo('Invygo')}</th>
@@ -1677,6 +1673,21 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     >
                       Clear
                     </button>
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Manufacturer"
+                      value={summaryTableFilters.manufacturer}
+                      onChange={(e) => updateSummaryFilter('manufacturer', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
                     <input
@@ -1744,14 +1755,15 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                   {applyFilters(modelSummaryAll, summaryTableFilters).map((item, i) => {
                   const rowBg = i % 2 === 0 ? '#fff' : '#f5f5f5';
                   return (
-                    <tr key={item.model} style={{ background: rowBg, textAlign: 'center' }}>
+                    <tr key={`${item.manufacturer}-${item.model}`} style={{ background: rowBg, textAlign: 'center' }}>
                       <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center', background: rowBg, cursor: 'pointer' }}
                         onClick={() => setSelectedSummaryModel({ model: item.model, filter: 'all' })}
                       >{i + 1}</td>
+                      <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{item.manufacturer}</td>
                       <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', color: '#7b1fa2', fontWeight: 'bold', textAlign: 'center', background: rowBg, cursor: 'pointer' }}
                         onClick={() => searchCarImage(item.model)}
                         title="Click to search car images on Google"
-                      >{item.model}</td>
+                      >{item.model} <span style={{ marginLeft: '5px', fontSize: '0.8rem' }}>🔍</span></td>
                       <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center', background: rowBg, cursor: 'pointer' }}
                         onClick={() => setSelectedSummaryModel({ model: item.model, filter: 'all' })}
                       >{item.total}</td>
@@ -1812,7 +1824,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
               if (selectedSummaryModel.filter === 'yelo') title += 'YELO Cars';
               if (selectedSummaryModel.filter === 'all') title += 'All Cars';
               title += ` (${count})`;
-              title = title.replace(/[^ -\w\d\-()]+/g, '_');
+              title = title.replace(/[^\u0000-\u007F\w\d\-()]+/g, '_');
               const ws = XLSX.utils.json_to_sheet(exportData);
               const wb = XLSX.utils.book_new();
               XLSX.utils.book_append_sheet(wb, ws, 'Fleet Report');
@@ -1833,6 +1845,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
               <thead>
                 <tr style={{ background: '#ffe082', color: '#222', fontWeight: 'bold' }}>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '32px' }}>#</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Class</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Manufacturer</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Model</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '48px' }}>Year</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '60px' }}>Color</th>
@@ -1862,6 +1876,36 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     >
                       Clear
                     </button>
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Class"
+                      value={detailTableFilters.class}
+                      onChange={(e) => updateDetailFilter('class', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Manufacturer"
+                      value={detailTableFilters.manufacturer}
+                      onChange={(e) => updateDetailFilter('manufacturer', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
                     <input
@@ -2013,6 +2057,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                 ).map((car, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f5f5f5', textAlign: 'center' }}>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{i + 1}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Class || '-'}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Manufacturer || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', color: '#7b1fa2', fontWeight: 'bold' }}>
                       {colorizeInvygoYelo(car.Model)}
                       <span 
@@ -2095,6 +2141,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
               <thead>
                 <tr style={{ background: '#ffe082', color: '#222', fontWeight: 'bold' }}>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '32px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Class</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Manufacturer</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Model</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '48px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Year</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '60px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Color</th>
@@ -2124,6 +2172,36 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     >
                       Clear
                     </button>
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Class"
+                      value={expiryTableFilters.class}
+                      onChange={(e) => updateExpiryFilter('class', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Manufacturer"
+                      value={expiryTableFilters.manufacturer}
+                      onChange={(e) => updateExpiryFilter('manufacturer', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
                     <input
@@ -2277,6 +2355,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                 })), expiryTableFilters).map((car, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f5f5f5', textAlign: 'center' }}>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i + 1}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car.Class || '-'}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car.Manufacturer || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', color: '#7b1fa2', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{colorizeInvygoYelo(car.Model)}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Year Model"] || car["Year"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Color"] || car[" color"] || car["COLOR"] || '-'}</td>
@@ -2328,6 +2408,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
               <thead>
                 <tr style={{ background: '#ffe082', color: '#222', fontWeight: 'bold' }}>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '32px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>#</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Class</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Manufacturer</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Model</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '48px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Year</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '60px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Color</th>
@@ -2343,6 +2425,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                 {expiryDateResult.cars.map((car, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f5f5f5', textAlign: 'center' }}>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i + 1}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car.Class || '-'}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car.Manufacturer || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', color: '#7b1fa2', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {colorizeInvygoYelo(car.Model)}
                       <span 
@@ -2397,6 +2481,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
               <thead>
                 <tr style={{ background: '#ffe082', color: '#222', fontWeight: 'bold' }}>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '32px' }}>#</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Class</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Manufacturer</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Model</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '48px' }}>Year</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '60px' }}>Color</th>
@@ -2426,6 +2512,36 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     >
                       Clear
                     </button>
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Class"
+                      value={detailTableFilters.class}
+                      onChange={(e) => updateDetailFilter('class', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Manufacturer"
+                      value={detailTableFilters.manufacturer}
+                      onChange={(e) => updateDetailFilter('manufacturer', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
                   </td>
                   <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
                     <input
@@ -2575,6 +2691,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                 ).map((car, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f5f5f5' }}>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{i + 1}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Class || '-'}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Manufacturer || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', color: '#7b1fa2', fontWeight: 'bold' }}>
                       {colorizeInvygoYelo(car.Model)}
                       <span 
@@ -2686,5 +2804,3 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
     </div>
   );
 }
-
-
