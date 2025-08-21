@@ -66,27 +66,27 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
   // 🔍 متغيرات فلاتر الجداول (مثل الإكسيل)
   const [tableFilters, setTableFilters] = useState({ // فلاتر جدول البحث الرئيسي
     class: '', manufacturer: '', model: '', year: '', color: '',
-    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: '', status: ''
   });
 
   const [smartTableFilters, setSmartTableFilters] = useState({ // فلاتر جدول التنقل الذكي
     class: '', manufacturer: '', model: '', year: '', color: '',
-    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: '', status: ''
   });
 
   const [summaryTableFilters, setSummaryTableFilters] = useState({ // فلاتر جدول الملخص
     class: '', manufacturer: '', model: '', year: '', color: '',
-    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: '', status: ''
   });
 
   const [expiryTableFilters, setExpiryTableFilters] = useState({ // فلاتر جدول الانتهاء
     class: '', manufacturer: '', model: '', year: '', color: '',
-    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: '', status: ''
   });
 
   const [detailTableFilters, setDetailTableFilters] = useState({ // فلاتر جدول تفاصيل الكروت
     class: '', manufacturer: '', model: '', year: '', color: '',
-    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: ''
+    plateNo: '', rentalRate: '', chassisNo: '', regExp: '', insurExp: '', remarks: '', status: ''
   });
 
   // 🎨 ألوان الكروت والعرض
@@ -228,6 +228,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
             return matchesAny(String(row["Insur Exp"] || row.insurExp || '').toLowerCase());
           case 'remarks':
             return matchesAny(String(row.Remarks || row.remarks || '').toLowerCase());
+          case 'status':
+            return matchesAny(String(row.Status || row.status || '').toLowerCase());
           // دعم أعمدة السامري
           case 'total':
             return matchesAny(String(row.total || ''));
@@ -300,7 +302,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
       chassisNo: '',
       regExp: '',
       insurExp: '',
-      remarks: ''
+      remarks: '',
+      status: ''
     });
   };
 
@@ -317,7 +320,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
       chassisNo: '',
       regExp: '',
       insurExp: '',
-      remarks: ''
+      remarks: '',
+      status: ''
     });
   };
 
@@ -334,7 +338,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
       chassisNo: '',
       regExp: '',
       insurExp: '',
-      remarks: ''
+      remarks: '',
+      status: ''
     });
   };
 
@@ -351,7 +356,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
       chassisNo: '',
       regExp: '',
       insurExp: '',
-      remarks: ''
+      remarks: '',
+      status: ''
     });
   };
 
@@ -368,7 +374,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
       chassisNo: '',
       regExp: '',
       insurExp: '',
-      remarks: ''
+      remarks: '',
+      status: ''
     });
   };
 
@@ -504,7 +511,9 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
   // Google Sheet fetch
   const fetchFromGoogleSheet = async () => {
     const sheetUrl = "https://docs.google.com/spreadsheets/d/1sHvEQMtt3suuxuMA0zhcXk5TYGqZzit0JvGLk1CQ0LI/export?format=csv&gid=804568597";
+    const statusUrl = "https://docs.google.com/spreadsheets/d/1v4rQWn6dYPVQPd-PkhvrDNgKVnexilrR2XIUVa5RKEM/export?format=csv&gid=1425121708";
     try {
+      // جلب البيانات الأساسية
       const res = await fetch(sheetUrl);
       const text = await res.text();
       const rows = text.split('\n').map(row => row.split(','));
@@ -512,6 +521,25 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
       const dataArr = rows.slice(1).map(row =>
         Object.fromEntries(row.map((cell, i) => [headers[i].trim(), cell]))
       );
+      
+      // جلب بيانات الحالة
+      const statusRes = await fetch(statusUrl);
+      const statusText = await statusRes.text();
+      const statusRows = statusText.split('\n').map(row => row.split(','));
+      const statusHeaders = statusRows[0];
+      const statusData = {};
+      statusRows.slice(1).forEach(row => {
+        const statusObj = Object.fromEntries(row.map((cell, i) => [statusHeaders[i]?.trim(), cell]));
+        const plateNo = statusObj['Plate No'] || statusObj['plate no'] || statusObj['Plate no'] || statusObj['Plate Number'];
+        const status = statusObj['Status'] || statusObj['status'] || statusObj['STATUS'];
+        if (plateNo && plateNo.trim()) {
+          statusData[plateNo.replace(/\s/g, '').toUpperCase()] = status || 'Unknown';
+        }
+      });
+      
+      console.log('Status data loaded:', Object.keys(statusData).length, 'entries');
+      console.log('Sample status data:', Object.entries(statusData).slice(0, 5));
+      
       const cleaned = dataArr.map(r => ({
         ...r,
         PlateNoClean: String(r["Plate No"] || "").replace(/\s/g, "").toUpperCase(),
@@ -519,11 +547,12 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
         InsurExp: formatDate(r["Insur Exp"]),
         SaleDate: formatDate(r["Sale Date"]),
         Remarks: String(r.Remarks || "").toUpperCase(),
-        isInvygo: String(r.Remarks || "").toUpperCase().includes("INVYGO")
+        isInvygo: String(r.Remarks || "").toUpperCase().includes("INVYGO"),
+        Status: statusData[String(r["Plate No"] || "").replace(/\s/g, "").toUpperCase()] || 'Unknown'
       }));
       setData(cleaned);
       setFiltered([]);
-      analyze(cleaned); // فقط للكروت الدائمة
+      analyze(cleaned);
       setShowFiltered(false);
       if (typeof onDataLoaded === "function") onDataLoaded(cleaned);
     } catch (err) {
@@ -593,7 +622,6 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
     if (view !== 'search') {
       setFiltered([]);
       setShowFiltered(false);
-      setExpiryDateResult(null);
       setShowExpiryDateDetails(false);
       setExpiryModalTable(null);
       setShowExpiryTable(false);
@@ -613,7 +641,6 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
     setShowSummaryDetail(null);
     setShowExpiryTable(false);
     setShowFiltered(false);
-    setExpiryDateResult(null);
     setExpiryModalTable(null);
     setExpiryFiltered(null);
     setSelectedSummaryModel(null);
@@ -649,7 +676,14 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
         <div style={{ display: 'flex', justifyContent: 'center', gap: '32px' }}>
           {/* 🏠 زر الصفحة الرئيسية - البحث والكروت */}
           <button
-            onClick={() => { setView('search'); setSelectedClass(null); setSelectedMake(null); }}
+            onClick={() => { 
+              setView('search'); 
+              setSelectedClass(null); 
+              setSelectedMake(null);
+              setExpiryDateResult(null);
+              setShowSummaryDetail(null);
+              setShowExpiryTable(false);
+            }}
             style={{
               fontSize: '1.35rem', fontWeight: 'bold', padding: '18px 38px', borderRadius: '14px',
               background: '#ffd600', color: '#111', border: 'none',
@@ -664,7 +698,14 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
           
           {/* 🧠 زر التنقل الذكي - تصفح بالفئات والموديلات */}
           <button
-            onClick={() => { setView('smart'); setSelectedClass(null); setSelectedMake(null); }}
+            onClick={() => { 
+              setView('smart'); 
+              setSelectedClass(null); 
+              setSelectedMake(null);
+              setExpiryDateResult(null);
+              setShowSummaryDetail(null);
+              setShowExpiryTable(false);
+            }}
             style={{
               fontSize: '1.35rem', fontWeight: 'bold', padding: '18px 38px', borderRadius: '14px',
               background: '#7b1fa2', color: '#ffde38', border: 'none',
@@ -679,7 +720,15 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
           
           {/* 📊 زر الملخص - إحصائيات الموديلات */}
           <button
-            onClick={() => { setView('summary'); setSelectedClass(null); setSelectedMake(null); setSelectedSummaryModel(null); }}
+            onClick={() => { 
+              setView('summary'); 
+              setSelectedClass(null); 
+              setSelectedMake(null); 
+              setSelectedSummaryModel(null);
+              setExpiryDateResult(null);
+              setShowSummaryDetail(null);
+              setShowExpiryTable(false);
+            }}
             style={{
               fontSize: '1.35rem', fontWeight: 'bold', padding: '18px 38px', borderRadius: '14px',
               background: '#ffd600', color: '#111', border: 'none',
@@ -735,12 +784,13 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
               if (e.key === 'Enter' && expiryDate) {
                 e.preventDefault();
                 setExpiryModalOpen(false);
+                setView('search');
                 setExpiryDateResult(null);
                 setShowExpiryDateDetails(false);
                 setExpiryModalTable(null);
                 setShowExpiryTable(false);
                 setExpiryFiltered(null);
-                setView('search'); // إظهار الصفحة الرئيسية فقط
+
                 const selected = new Date(expiryDate);
                 const cars = data.filter(car => {
                   const exp = car.RegExp || car["Reg Exp"];
@@ -755,8 +805,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                   return d <= selected;
                 });
                 setExpiryDateResult({ cars, date: expiryDate });
-                setFiltered([]);
-                setShowFiltered(false);
+
               }
             }}
             style={{ padding: '8px', borderRadius: '8px', border: '1px solid #ccc', fontSize: '15px', marginBottom: 18 }}
@@ -766,12 +815,8 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
             onClick={() => {
               if (!expiryDate) return;
               setExpiryModalOpen(false);
-              setExpiryDateResult(null);
-              setShowExpiryDateDetails(false);
-              setExpiryModalTable(null);
-              setShowExpiryTable(false);
-              setExpiryFiltered(null);
-              setView('search'); // إظهار الصفحة الرئيسية فقط
+              setView('search');
+
               const selected = new Date(expiryDate);
               const cars = data.filter(car => {
                 const exp = car.RegExp || car["Reg Exp"];
@@ -786,8 +831,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                 return d <= selected;
               });
               setExpiryDateResult({ cars, date: expiryDate });
-              setFiltered([]);
-              setShowFiltered(false);
+
             }}
             style={{
               padding: '10px 22px',
@@ -978,6 +1022,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Insur Expiry</th>
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Mortgage</th>
                       <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo('Remarks')}</th>
+                      <th style={{ padding: '12px 8px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Status</th>
                     </tr>
                     {/* صف الفلاتر لجدول Smart Navigation */}
                     <tr style={{ background: '#f5f5f5' }}>
@@ -1149,6 +1194,21 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                           }}
                         />
                       </td>
+                      <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                        <input
+                          type="text"
+                          placeholder="Filter Status"
+                          value={smartTableFilters.status}
+                          onChange={(e) => updateSmartFilter('status', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '4px',
+                            fontSize: '0.8rem',
+                            border: '1px solid #ccc',
+                            borderRadius: '4px'
+                          }}
+                        />
+                      </td>
                     </tr>
                   </thead>
                                       <tbody>
@@ -1174,6 +1234,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.InsurExp || '-'}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Mortgage || '-'}</td>
                         <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo(car.Remarks || '-')}</td>
+                        <td style={{ padding: '10px 8px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Status || 'Unknown'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1377,18 +1438,19 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     <div><strong>Mortgage:</strong> <span style={{ color: '#222' }}>{filtered[0].Mortgage || '-'}</span></div>
                     <div><strong>Chassis no.:</strong> <span style={{ color: '#222' }}>{filtered[0]["Chassis no."] || '-'}</span></div>
                     <div><strong>Remarks:</strong> <span style={{ color: '#222' }}>{filtered[0].Remarks || '-'}</span></div>
+                    <div><strong>Status:</strong> <span style={{ color: '#222' }}>{filtered[0].Status || 'Unknown'}</span></div>
                   </div>
                 </div>
               ) : (
                 // عرض جدول إذا كانت النتائج أكثر من واحدة
-                <div style={{ width: '100%', maxWidth: '1100px', overflowX: 'auto', margin: '0 auto' }}>
+                <div style={{ width: '100%', maxWidth: '1400px', overflowX: 'auto', margin: '0 auto' }}>
                   <table style={{
                     borderCollapse: 'collapse',
                     background: '#fffde7',
                     boxShadow: '0 2px 12px #b39ddb33',
                     borderRadius: '16px',
                     overflow: 'hidden',
-                    fontSize: '0.9rem',
+                    fontSize: '1rem',
                     tableLayout: 'auto'
                   }}>
                     <thead>
@@ -1405,6 +1467,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                         <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Reg Exp</th>
                         <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Insur Exp</th>
                         <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Remarks</th>
+                        <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', textAlign: 'center' }}>Status</th>
                       </tr>
                       {/* صف الفلاتر داخل الجدول */}
                       <tr style={{ background: '#f5f5f5' }}>
@@ -1591,6 +1654,21 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                             }}
                           />
                         </td>
+                        <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                          <input
+                            type="text"
+                            placeholder="Filter Status"
+                            value={tableFilters.status}
+                            onChange={(e) => updateFilter('status', e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '4px',
+                              fontSize: '0.8rem',
+                              border: '1px solid #ccc',
+                              borderRadius: '4px'
+                            }}
+                          />
+                        </td>
                       </tr>
                     </thead>
                     <tbody>
@@ -1617,6 +1695,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                           <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Reg Exp"] || '-'}</td>
                           <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Insur Exp"] || '-'}</td>
                           <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo(car.Remarks || '-')}</td>
+                          <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Status || 'Unknown'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1856,6 +1935,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Reg Exp</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Insur Exp</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '90px' }}>Remarks</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Status</th>
                 </tr>
                 {/* صف الفلاتر لجدول تفاصيل الموديل */}
                 <tr style={{ background: '#f5f5f5' }}>
@@ -2042,6 +2122,21 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                       }}
                     />
                   </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Status"
+                      value={detailTableFilters.status}
+                      onChange={(e) => updateDetailFilter('status', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
                 </tr>
               </thead>
               <tbody>
@@ -2077,6 +2172,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Reg Exp"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Insur Exp"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo(car.Remarks || '-')}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Status || 'Unknown'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -2152,6 +2248,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Reg Exp</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Insur Exp</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '90px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Remarks</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Status</th>
                 </tr>
                 {/* صف الفلاتر لجدول Expiry */}
                 <tr style={{ background: '#f5f5f5' }}>
@@ -2338,6 +2435,21 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                       }}
                     />
                   </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Status"
+                      value={expiryTableFilters.status}
+                      onChange={(e) => updateExpiryFilter('status', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
                 </tr>
               </thead>
               <tbody>
@@ -2361,11 +2473,11 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Year Model"] || car["Year"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Color"] || car[" color"] || car["COLOR"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Plate No"] || '-'}</td>
-                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Rental Rate"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Chassis no."] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Reg Exp"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Insur Exp"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{colorizeInvygoYelo(car.Remarks || '-')}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car.Status || 'Unknown'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -2419,10 +2531,212 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Reg Exp</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Insur Exp</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '90px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Remarks</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Status</th>
+                </tr>
+                {/* صف الفلاتر لجدول نتائج الانتهاء حسب التاريخ */}
+                <tr style={{ background: '#f5f5f5' }}>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <button 
+                      onClick={clearExpiryFilters}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        background: '#ff9800',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                      title="Clear all filters"
+                    >
+                      Clear
+                    </button>
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Class"
+                      value={expiryTableFilters.class}
+                      onChange={(e) => updateExpiryFilter('class', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Manufacturer"
+                      value={expiryTableFilters.manufacturer}
+                      onChange={(e) => updateExpiryFilter('manufacturer', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Model"
+                      value={expiryTableFilters.model}
+                      onChange={(e) => updateExpiryFilter('model', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Year"
+                      value={expiryTableFilters.year}
+                      onChange={(e) => updateExpiryFilter('year', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Color"
+                      value={expiryTableFilters.color}
+                      onChange={(e) => updateExpiryFilter('color', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Plate"
+                      value={expiryTableFilters.plateNo}
+                      onChange={(e) => updateExpiryFilter('plateNo', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Rate"
+                      value={expiryTableFilters.rentalRate}
+                      onChange={(e) => updateExpiryFilter('rentalRate', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Chassis"
+                      value={expiryTableFilters.chassisNo}
+                      onChange={(e) => updateExpiryFilter('chassisNo', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Reg"
+                      value={expiryTableFilters.regExp}
+                      onChange={(e) => updateExpiryFilter('regExp', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Insur"
+                      value={expiryTableFilters.insurExp}
+                      onChange={(e) => updateExpiryFilter('insurExp', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Remarks"
+                      value={expiryTableFilters.remarks}
+                      onChange={(e) => updateExpiryFilter('remarks', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Status"
+                      value={expiryTableFilters.status}
+                      onChange={(e) => updateExpiryFilter('status', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
                 </tr>
               </thead>
               <tbody>
-                {expiryDateResult.cars.map((car, i) => (
+                {applyFilters(expiryDateResult.cars, expiryTableFilters).map((car, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f5f5f5', textAlign: 'center' }}>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{i + 1}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car.Class || '-'}</td>
@@ -2445,13 +2759,14 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Reg Exp"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car["Insur Exp"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{colorizeInvygoYelo(car.Remarks || '-')}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{car.Status || 'Unknown'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <button
-            onClick={() => setExpiryModalTable(null)}
+            onClick={() => setExpiryDateResult(null)}
             style={{ marginTop: '22px', color: '#d32f2f', background: 'none', border: 'none', textDecoration: 'underline', cursor: 'pointer', fontSize: '1.1rem', fontWeight: 'bold' }}
           >
             ← Back
@@ -2492,6 +2807,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Reg Exp</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Insur Exp</th>
                   <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '90px' }}>Remarks</th>
+                  <th style={{ padding: '6px 2px', borderBottom: '2px solid #ffe082', textAlign: 'center', width: '70px' }}>Status</th>
                 </tr>
                 {/* صف الفلاتر لجدول تفاصيل الكروت */}
                 <tr style={{ background: '#f5f5f5' }}>
@@ -2678,6 +2994,21 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                       }}
                     />
                   </td>
+                  <td style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="Filter Status"
+                      value={detailTableFilters.status}
+                      onChange={(e) => updateDetailFilter('status', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '4px',
+                        fontSize: '0.8rem',
+                        border: '1px solid #ccc',
+                        borderRadius: '4px'
+                      }}
+                    />
+                  </td>
                 </tr>
               </thead>
               <tbody>
@@ -2711,6 +3042,7 @@ export default function FleetReportFinalFull({ enableSmartSearch, onDataLoaded }
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Reg Exp"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car["Insur Exp"] || '-'}</td>
                     <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{colorizeInvygoYelo(car.Remarks || '-')}</td>
+                    <td style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', textAlign: 'center' }}>{car.Status || 'Unknown'}</td>
                   </tr>
                 ))}
               </tbody>

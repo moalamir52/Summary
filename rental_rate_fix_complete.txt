@@ -1,0 +1,11 @@
+تم تحديد المشكلة:
+عمود Rental Rate لا يزال موجود في:
+1. جدول الانتهاء العام (showExpiryTable) 
+2. جدول نتائج الانتهاء حسب التاريخ (expiryDateResult)
+
+يجب إزالة:
+- Header: "Rental Rate"
+- Filter input: "Filter Rate" 
+- Data cell: {car["Rental Rate"] || '-'}
+
+من جميع جداول الانتهاء في الملف.

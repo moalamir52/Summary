@@ -1,0 +1,12 @@
+تم إزالة عمود Rental Rate من جداول الانتهاء بنجاح.
+
+الجداول المحدثة:
+1. جدول الانتهاء العام (showExpiryTable)
+2. جدول نتائج الانتهاء حسب التاريخ (expiryDateResult)
+
+تم إزالة:
+- عمود Header "Rental Rate"
+- فلتر "Filter Rate" 
+- عمود البيانات car["Rental Rate"]
+
+الآن جداول الانتهاء لا تعرض عمود Rental Rate.
