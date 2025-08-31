@@ -85,21 +85,21 @@ function App() {
   };
 
   const handleExport = () => {
-    let exportData = null;
+    let dataToExport = null;
     if (showSummaryDetail) {
       if (showSummaryDetail === 'total') {
-        exportData = data;
+        dataToExport = data;
       } else if (showSummaryDetail === 'invygo') {
-        exportData = data.filter(car => (car.Remarks || '').toUpperCase().includes('INVYGO'));
+        dataToExport = data.filter(car => car.isInvygo);
       } else if (showSummaryDetail === 'yelo') {
-        exportData = data.filter(car => !(car.Remarks || '').toUpperCase().includes('INVYGO'));
+        dataToExport = data.filter(car => !car.isInvygo);
       }
     }
     else if (expiryDateResult && expiryDateResult.cars && expiryDateResult.cars.length > 0) {
-      exportData = expiryDateResult.cars;
+      dataToExport = expiryDateResult.cars;
     }
     else if (showExpiryTable) {
-      exportData = data.filter(car => {
+      dataToExport = data.filter(car => {
             const exp = car.RegExp || car["Reg Exp"];
             if (!exp) return false;
             let d;
@@ -113,13 +113,65 @@ function App() {
           });
     }
     else if (showFiltered && filtered.length > 0) {
-      exportData = filtered;
+      dataToExport = filtered;
     }
-    if (!exportData || exportData.length === 0) {
+    if (!dataToExport || dataToExport.length === 0) {
       alert('لا يوجد بيانات للتصدير!');
       return;
     }
-    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    const cleanedData = dataToExport.map(row => {
+      const {
+        // Internal/helper fields to be removed from export
+        PlateNoClean,
+        isInvygo,
+        // Fields with duplicate-like keys to be consolidated
+        RegExp,
+        InsurExp,
+        SaleDate,
+        ...rest
+      } = row;
+
+      // Create a clean object for the Excel sheet
+      return {
+        ...rest,
+        "Reg Exp": RegExp || row["Reg Exp"],
+        "Insur Exp": InsurExp || row["Insur Exp"],
+        "Sale Date": SaleDate || row["Sale Date"],
+      };
+    });
+
+    const allKeys = new Set();
+    cleanedData.forEach(row => {
+        Object.keys(row).forEach(key => allKeys.add(key));
+    });
+
+    const allColumnsArray = Array.from(allKeys);
+
+    // Define a preferred, logical order for columns
+    const preferredOrder = [
+      "Class", "Manufacturer", "Model", "Year Model", "Plate No", "Color",
+      "Chassis no.", "Reg Exp", "Insur Exp", "Branch", "Status",
+      "Rental Rate", "Remarks"
+    ];
+
+    const sortedColumns = allColumnsArray.sort((a, b) => {
+        const indexA = preferredOrder.indexOf(a);
+        const indexB = preferredOrder.indexOf(b);
+
+        if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both in preferred list
+        if (indexA !== -1) return -1; // A is preferred, B is not
+        if (indexB !== -1) return 1;  // B is preferred, A is not
+        return a.localeCompare(b); // Neither is preferred, sort alphabetically
+    });
+
+    const finalData = cleanedData.map(row => {
+      const newRow = {};
+      sortedColumns.forEach(column => { newRow[column] = row.hasOwnProperty(column) ? row[column] : ''; });
+      return newRow;
+    });
+
+    const ws = XLSX.utils.json_to_sheet(finalData, { header: sortedColumns });
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Fleet Report');
     XLSX.writeFile(wb, `Fleet_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
