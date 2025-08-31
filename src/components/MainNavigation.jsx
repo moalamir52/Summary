@@ -1,6 +1,6 @@
 import React from 'react';
 
-const MainNavigation = ({ setView, setExpiryModalOpen }) => {
+const MainNavigation = ({ onNavigate, setExpiryModalOpen }) => {
   const buttonStyle = {
     fontSize: '1.35rem', 
     fontWeight: 'bold', 
@@ -33,7 +33,7 @@ const MainNavigation = ({ setView, setExpiryModalOpen }) => {
     >
       <div style={{ display: 'flex', justifyContent: 'center', gap: '32px' }}>
         <button
-          onClick={() => setView('search')} 
+          onClick={() => onNavigate('search')} 
           style={{...buttonStyle, background: '#ffd600', color: '#111'}}
           onMouseOver={handleMouseOver}
           onMouseOut={handleMouseOut}
@@ -42,7 +42,7 @@ const MainNavigation = ({ setView, setExpiryModalOpen }) => {
         </button>
         
         <button
-          onClick={() => setView('smart')} 
+          onClick={() => onNavigate('smart')} 
           style={{...buttonStyle, background: '#7b1fa2', color: '#ffde38'}}
           onMouseOver={handleMouseOver}
           onMouseOut={handleMouseOut}
@@ -51,7 +51,7 @@ const MainNavigation = ({ setView, setExpiryModalOpen }) => {
         </button>
         
         <button
-          onClick={() => setView('summary')} 
+          onClick={() => onNavigate('summary')} 
           style={{...buttonStyle, background: '#ffd600', color: '#111'}}
           onMouseOver={handleMouseOver}
           onMouseOut={handleMouseOut}

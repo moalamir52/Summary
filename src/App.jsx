@@ -41,6 +41,13 @@ function App() {
   const [searchCardColor, setSearchCardColor] = useState('#ffe082');
   const cardColors = ['#ffe082', '#ce93d8', '#b3e5fc', '#c8e6c9', '#ffccbc', '#f8bbd0', '#fff9c4', '#b2dfdb'];
 
+  const handleNavigation = (newView) => {
+    setSelectedSummaryModel(null); // Reset summary model when navigating
+    setSelectedClass(null); // Reset smart view class when navigating
+    setSelectedMake(null); // Reset smart view make when navigating
+    setView(newView);
+  };
+
   const analyze = (rows) => {
     const validRows = rows.filter(r => r.Model && r["Plate No"]);
     const total = validRows.length;
@@ -383,7 +390,7 @@ function App() {
   return (
     <div style={{ fontFamily: 'sans-serif' }}>
       <Header />
-      <MainNavigation setView={setView} setExpiryModalOpen={setExpiryModalOpen} />
+      <MainNavigation onNavigate={handleNavigation} setExpiryModalOpen={setExpiryModalOpen} />
 
       {view === 'search' && (
         <>

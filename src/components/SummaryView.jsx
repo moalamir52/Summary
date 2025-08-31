@@ -19,7 +19,11 @@ const SummaryView = ({
     const summaryColumns = [
         { header: '#', accessor: (row, i) => i + 1 },
         { header: 'Manufacturer', accessor: 'manufacturer' },
-        { header: 'Model', accessor: 'model', cell: (val) => <span onClick={() => searchCarImage(val)} style={{cursor: 'pointer'}}>{val} 🔍</span> },
+        { header: 'Model', accessor: 'model', cell: (val) => (
+            <span>
+                {val} <span onClick={() => searchCarImage(val)} style={{cursor: 'pointer'}}>🔍</span>
+            </span>
+        )},
         { header: 'Total', accessor: 'total' },
         { header: 'Invygo', accessor: 'invygo' },
         { header: 'YELO', accessor: 'yellow' },
@@ -29,7 +33,11 @@ const SummaryView = ({
         { header: '#', accessor: (row, i) => i + 1 },
         { header: 'Class', accessor: 'Class' },
         { header: 'Manufacturer', accessor: 'Manufacturer' },
-        { header: 'Model', accessor: 'Model', cell: (val, row) => <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>{colorizeInvygoYelo(val)} 🔍</span> },
+        { header: 'Model', accessor: 'Model', cell: (val, row) => (
+            <span>
+                {colorizeInvygoYelo(val)} <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>🔍</span>
+            </span>
+        )},
         { header: 'Year', accessor: 'Year Model' },
         { header: 'Color', accessor: 'Color' },
         { header: 'Plate No', accessor: 'Plate No' },
