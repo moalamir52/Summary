@@ -186,20 +186,24 @@ function App() {
         const matchesAny = (fieldStr) => filterValues.some(val => fieldStr.includes(val));
         const keyMap = {
             class: 'Class',
-            manufacturer: 'Manufacturer',
-            model: 'Model',
+            manufacturer: row.hasOwnProperty('manufacturer') ? 'manufacturer' : 'Manufacturer',
+            model: row.hasOwnProperty('model') ? 'model' : 'Model',
             year: 'Year Model',
+            yearmodel: 'Year Model',
             color: 'Color',
-            plateNo: 'Plate No',
-            rentalRate: 'Rental Rate',
-            chassisNo: 'Chassis no.',
-            regExp: 'Reg Exp',
-            insurExp: 'Insur Exp',
+            plateno: 'Plate No',
+            rentalrate: 'Rental Rate',
+            chassisno: 'Chassis no.',
+            'chassis no.': 'Chassis no.',
+            regexp: 'Reg Exp',
+            'reg exp': 'Reg Exp',
+            insurexp: 'Insur Exp',
+            'insur exp': 'Insur Exp',
             remarks: 'Remarks',
             status: 'Status',
             total: 'total',
             invygo: 'invygo',
-            yelo: 'yelo'
+            yelo: 'yellow'
         };
         const mappedKey = keyMap[key];
         if(mappedKey) {

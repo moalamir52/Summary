@@ -44,23 +44,26 @@ const GenericTable = ({ data, columns, filters, updateFilter, clearFilters, appl
                                     Clear
                                 </button>
                             </td>
-                            {columns.slice(1).map((col, i) => (
-                                <td key={i} style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082' }}>
-                                    <input
-                                        type="text"
-                                        placeholder={`Filter ${col.header}`}
-                                        value={filters[col.accessor] || ''}
-                                        onChange={(e) => updateFilter(col.accessor, e.target.value)}
-                                        style={{
-                                            width: '100%',
-                                            padding: '4px',
-                                            fontSize: '0.8rem',
-                                            border: '1px solid #ccc',
-                                            borderRadius: '4px'
-                                        }}
-                                    />
-                                </td>
-                            ))}
+                            {columns.slice(1).map((col, i) => {
+                                const filterKey = typeof col.accessor === 'string' ? col.accessor.toLowerCase().replace(/\s+/g, '') : col.header.toLowerCase().replace(/\s+/g, '');
+                                return (
+                                    <td key={i} style={{ padding: '4px 2px', borderBottom: '1px solid #ffe082' }}>
+                                        <input
+                                            type="text"
+                                            placeholder={`Filter ${col.header}`}
+                                            value={filters[filterKey] || ''}
+                                            onChange={(e) => updateFilter(filterKey, e.target.value)}
+                                            style={{
+                                                width: '100%',
+                                                padding: '4px',
+                                                fontSize: '0.8rem',
+                                                border: '1px solid #ccc',
+                                                borderRadius: '4px'
+                                            }}
+                                        />
+                                    </td>
+                                );
+                            })}
                         </tr>
                     )}
                 </thead>
