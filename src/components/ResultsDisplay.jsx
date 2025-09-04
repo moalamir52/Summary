@@ -39,6 +39,7 @@ const ResultsDisplay = ({
         { header: 'Insur Exp', accessor: 'Insur Exp' },
         { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
         { header: 'Status', accessor: 'Status' },
+        { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
     ];
 
     if (showFiltered && filtered.length > 0) {
@@ -88,6 +89,7 @@ const ResultsDisplay = ({
                     <div><strong>Chassis no.:</strong> <span style={{ color: '#222' }}>{filtered[0]["Chassis no."] || '-'}</span></div>
                     <div><strong>Remarks:</strong> <span style={{ color: '#222' }}>{filtered[0].Remarks || '-'}</span></div>
                     <div><strong>Status:</strong> <span style={{ color: '#222' }}>{filtered[0].Status || 'Unknown'}</span></div>
+                    <div><strong>Branch:</strong> <span style={{ color: '#222' }}>{filtered[0].Branch || 'Unknown'}</span></div>
                   </div>
                 </div>
               ) : (

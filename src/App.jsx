@@ -201,6 +201,7 @@ function App() {
             'insur exp': 'Insur Exp',
             remarks: 'Remarks',
             status: 'Status',
+            branch: 'Branch',
             total: 'total',
             invygo: 'invygo',
             yelo: 'yellow'
@@ -352,21 +353,30 @@ function App() {
         const statusObj = Object.fromEntries(row.map((cell, i) => [statusHeaders[i]?.trim(), cell]));
         const plateNo = statusObj['Plate No'] || statusObj['plate no'] || statusObj['Plate no'] || statusObj['Plate Number'];
         const status = statusObj['Status'] || statusObj['status'] || statusObj['STATUS'];
+        const branch = statusObj['Branch'] || statusObj['branch'] || statusObj['BRANCH'];
         if (plateNo && plateNo.trim()) {
-          statusData[plateNo.replace(/\s/g, '').toUpperCase()] = status || 'Unknown';
+          statusData[plateNo.replace(/\s/g, '').toUpperCase()] = {
+            status: status || 'Unknown',
+            branch: branch || 'Unknown'
+          };
         }
       });
       
-      const cleaned = dataArr.map(r => ({
-        ...r,
-        PlateNoClean: String(r["Plate No"] || "").replace(/\s/g, "").toUpperCase(),
-        RegExp: formatDate(r["Reg Exp"]),
-        InsurExp: formatDate(r["Insur Exp"]),
-        SaleDate: formatDate(r["Sale Date"]),
-        Remarks: String(r.Remarks || "").toUpperCase(),
-        isInvygo: String(r.Remarks || "").toUpperCase().includes("INVYGO"),
-        Status: statusData[String(r["Plate No"] || "").replace(/\s/g, "").toUpperCase()] || 'Unknown'
-      }));
+      const cleaned = dataArr.map(r => {
+        const plateKey = String(r["Plate No"] || "").replace(/\s/g, "").toUpperCase();
+        const statusInfo = statusData[plateKey] || { status: 'Unknown', branch: 'Unknown' };
+        return {
+          ...r,
+          PlateNoClean: plateKey,
+          RegExp: formatDate(r["Reg Exp"]),
+          InsurExp: formatDate(r["Insur Exp"]),
+          SaleDate: formatDate(r["Sale Date"]),
+          Remarks: String(r.Remarks || "").toUpperCase(),
+          isInvygo: String(r.Remarks || "").toUpperCase().includes("INVYGO"),
+          Status: statusInfo.status,
+          Branch: statusInfo.branch
+        };
+      });
       setData(cleaned);
       setFiltered([]);
       analyze(cleaned);

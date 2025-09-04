@@ -36,6 +36,7 @@ const SmartNavView = ({
     { header: 'Mortgage', accessor: 'Mortgage' },
     { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
     { header: 'Status', accessor: 'Status' },
+    { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
   ];
 
   return (
