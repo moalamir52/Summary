@@ -1,27 +1,16 @@
 import React from 'react';
-import GenericTable from './GenericTable';
+import ExcelLikeTable from './ExcelLikeTable';
 import { colorizeInvygoYelo, searchCarImage } from '../utils';
 
 const ResultsDisplay = ({ 
     showFiltered, 
     filtered, 
-    applyTableFilters, 
-    tableFilters, 
-    updateFilter, 
-    clearAllFilters, 
     searchCardColor,
     showExpiryTable,
     expiryCount,
     data,
-    expiryTableFilters,
-    updateExpiryFilter,
-    clearExpiryFilters,
-    applyFilters,
     showSummaryDetail,
     summaryAll,
-    detailTableFilters,
-    updateDetailFilter,
-    clearDetailFilters,
     expiryDateResult
 }) => {
 
@@ -47,7 +36,7 @@ const ResultsDisplay = ({
             <div style={{ marginTop: '20px' }}>
               <h2 style={{ fontSize: '2rem', marginBottom: 18, color: '#6a1b9a', textAlign: 'center' }}>🔍 Search Results
                 <span style={{ fontSize: '1.2rem', color: '#7b1fa2', marginLeft: 10 }}>
-                  ({applyTableFilters(filtered, tableFilters).length} of {filtered.length})
+                  ({filtered.length})
                 </span>
               </h2>
               {filtered.length === 1 ? (
@@ -94,13 +83,9 @@ const ResultsDisplay = ({
                 </div>
               ) : (
                 <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                  <GenericTable 
+                  <ExcelLikeTable 
                       data={filtered}
                       columns={columns}
-                      filters={tableFilters}
-                      updateFilter={updateFilter}
-                      clearFilters={clearAllFilters}
-                      applyFilters={applyTableFilters}
                   />
                 </div>
               )}
@@ -125,13 +110,9 @@ const ResultsDisplay = ({
                 <h2 style={{ color: '#7b1fa2', fontWeight: 'bold', fontSize: '2rem', marginBottom: '18px' }}>
                     Expiry Details ({expiryCount})
                 </h2>
-                <GenericTable 
+                <ExcelLikeTable 
                     data={expiredCars}
                     columns={columns}
-                    filters={expiryTableFilters}
-                    updateFilter={updateExpiryFilter}
-                    clearFilters={clearExpiryFilters}
-                    applyFilters={applyFilters}
                 />
             </div>
         )
@@ -141,13 +122,9 @@ const ResultsDisplay = ({
                 <h2 style={{ color: '#7b1fa2', fontWeight: 'bold', fontSize: '2rem', marginBottom: '18px' }}>
                     Expiry Details ({expiryDateResult.cars.length})
                 </h2>
-                <GenericTable 
+                <ExcelLikeTable 
                     data={expiryDateResult.cars}
                     columns={columns}
-                    filters={expiryTableFilters}
-                    updateFilter={updateExpiryFilter}
-                    clearFilters={clearExpiryFilters}
-                    applyFilters={applyFilters}
                 />
             </div>
         )
@@ -170,13 +147,9 @@ const ResultsDisplay = ({
                 <h2 style={{ fontWeight: 'bold', fontSize: '2rem', marginBottom: '18px' }}>
                     {title}
                 </h2>
-                <GenericTable 
+                <ExcelLikeTable 
                     data={summaryData}
                     columns={columns}
-                    filters={detailTableFilters}
-                    updateFilter={updateDetailFilter}
-                    clearFilters={clearDetailFilters}
-                    applyFilters={applyFilters}
                 />
             </div>
         )

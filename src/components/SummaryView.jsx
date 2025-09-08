@@ -1,18 +1,12 @@
 import React from 'react';
 import GenericTable from './GenericTable';
+import ExcelLikeTable from './ExcelLikeTable';
 import { colorizeInvygoYelo, searchCarImage } from '../utils.jsx';
 
 const SummaryView = ({ 
     modelSummaryAll, 
     selectedSummaryModel, 
     setSelectedSummaryModel, 
-    summaryTableFilters, 
-    updateSummaryFilter, 
-    clearSummaryFilters, 
-    detailTableFilters, 
-    updateDetailFilter, 
-    clearDetailFilters, 
-    applyFilters, 
     data 
 }) => {
 
@@ -24,9 +18,21 @@ const SummaryView = ({
                 {val} <span onClick={() => searchCarImage(val)} style={{cursor: 'pointer'}}>🔍</span>
             </span>
         )},
-        { header: 'Total', accessor: 'total' },
-        { header: 'Invygo', accessor: 'invygo' },
-        { header: 'YELO', accessor: 'yellow' },
+        { header: 'Total', accessor: 'total', cell: (val, row) => (
+            <span onClick={() => setSelectedSummaryModel({ model: row.model, manufacturer: row.manufacturer, filter: 'all' })} style={{cursor: 'pointer', color: '#1976d2', textDecoration: 'underline'}}>
+                {val}
+            </span>
+        )},
+        { header: 'Invygo', accessor: 'invygo', cell: (val, row) => (
+            <span onClick={() => setSelectedSummaryModel({ model: row.model, manufacturer: row.manufacturer, filter: 'invygo' })} style={{cursor: 'pointer', color: '#1976d2', textDecoration: 'underline'}}>
+                {val}
+            </span>
+        )},
+        { header: 'YELO', accessor: 'yellow', cell: (val, row) => (
+            <span onClick={() => setSelectedSummaryModel({ model: row.model, manufacturer: row.manufacturer, filter: 'yelo' })} style={{cursor: 'pointer', color: '#1976d2', textDecoration: 'underline'}}>
+                {val}
+            </span>
+        )},
     ];
 
     const detailColumns = [
@@ -52,10 +58,11 @@ const SummaryView = ({
 
     const getFilteredData = () => {
         if (!selectedSummaryModel) return [];
-        const { model, filter } = selectedSummaryModel;
-        if (filter === 'all') return data.filter(car => car.Model === model);
-        if (filter === 'invygo') return data.filter(car => car.Model === model && (car.Remarks || '').toUpperCase().includes('INVYGO'));
-        if (filter === 'yelo') return data.filter(car => car.Model === model && !(car.Remarks || '').toUpperCase().includes('INVYGO'));
+        const { model, manufacturer, filter } = selectedSummaryModel;
+        const baseFilter = (car) => car.Model === model && (car.Manufacturer || 'Unknown') === manufacturer;
+        if (filter === 'all') return data.filter(baseFilter);
+        if (filter === 'invygo') return data.filter(car => baseFilter(car) && car.isInvygo);
+        if (filter === 'yelo') return data.filter(car => baseFilter(car) && !car.isInvygo);
         return [];
     }
 
@@ -66,14 +73,9 @@ const SummaryView = ({
           <h2 style={{ color: '#7b1fa2', fontWeight: 'bold', fontSize: '2.1rem', marginBottom: '18px', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span role="img" aria-label="box">📦</span> Summary by Model ({modelSummaryAll.length})
           </h2>
-          <GenericTable 
+          <ExcelLikeTable 
             data={modelSummaryAll}
             columns={summaryColumns}
-            filters={summaryTableFilters}
-            updateFilter={updateSummaryFilter}
-            clearFilters={clearSummaryFilters}
-            applyFilters={applyFilters}
-            onRowClick={(row) => setSelectedSummaryModel({ model: row.model, filter: 'all' })}
           />
         </>
       ) : (
@@ -88,13 +90,9 @@ const SummaryView = ({
                     ({getFilteredData().length})
                 </span>
             </h2>
-            <GenericTable 
+            <ExcelLikeTable 
                 data={getFilteredData()}
                 columns={detailColumns}
-                filters={detailTableFilters}
-                updateFilter={updateDetailFilter}
-                clearFilters={clearDetailFilters}
-                applyFilters={applyFilters}
             />
           <button
             onClick={() => setSelectedSummaryModel(null)}

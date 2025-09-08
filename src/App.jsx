@@ -30,11 +30,7 @@ function App() {
   const [summaryAll, setSummaryAll] = useState(null);
   const [modelSummaryAll, setModelSummaryAll] = useState([]);
   const [showSummaryDetail, setShowSummaryDetail] = useState(null);
-  const [tableFilters, setTableFilters] = useState({});
-  const [smartTableFilters, setSmartTableFilters] = useState({});
-  const [summaryTableFilters, setSummaryTableFilters] = useState({});
-  const [expiryTableFilters, setExpiryTableFilters] = useState({});
-  const [detailTableFilters, setDetailTableFilters] = useState({});
+
   const [showExpiryDateDetails, setShowExpiryDateDetails] = useState(false);
   const [expiryModalTable, setExpiryModalTable] = useState(null);
   const [expiryFiltered, setExpiryFiltered] = useState(null);
@@ -45,6 +41,12 @@ function App() {
     setSelectedSummaryModel(null); // Reset summary model when navigating
     setSelectedClass(null); // Reset smart view class when navigating
     setSelectedMake(null); // Reset smart view make when navigating
+    setFiltered([]); // Clear search results
+    setShowFiltered(false); // Hide search results
+    setSearchTerm(''); // Clear search term
+    setShowSummaryDetail(null); // Clear summary detail filters
+    setShowExpiryTable(false); // Hide expiry table
+    setExpiryDateResult(null); // Clear expiry date results
     setView(newView);
   };
 
@@ -177,54 +179,7 @@ function App() {
     XLSX.writeFile(wb, `Fleet_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
-  const applyFilters = (dataToFilter, filters) => {
-    return dataToFilter.filter(row => {
-      return Object.entries(filters).every(([key, filterValue]) => {
-        if (!filterValue) return true;
-        const filterValues = filterValue.split(',').map(v => v.toLowerCase().trim()).filter(Boolean);
-        if (filterValues.length === 0) return true;
-        const matchesAny = (fieldStr) => filterValues.some(val => fieldStr.includes(val));
-        const keyMap = {
-            class: 'Class',
-            manufacturer: row.hasOwnProperty('manufacturer') ? 'manufacturer' : 'Manufacturer',
-            model: row.hasOwnProperty('model') ? 'model' : 'Model',
-            year: 'Year Model',
-            yearmodel: 'Year Model',
-            color: 'Color',
-            plateno: 'Plate No',
-            rentalrate: 'Rental Rate',
-            chassisno: 'Chassis no.',
-            'chassis no.': 'Chassis no.',
-            regexp: 'Reg Exp',
-            'reg exp': 'Reg Exp',
-            insurexp: 'Insur Exp',
-            'insur exp': 'Insur Exp',
-            remarks: 'Remarks',
-            status: 'Status',
-            branch: 'Branch',
-            total: 'total',
-            invygo: 'invygo',
-            yelo: 'yellow'
-        };
-        const mappedKey = keyMap[key];
-        if(mappedKey) {
-            return matchesAny(String(row[mappedKey] || '').toLowerCase());
-        }
-        return true;
-      });
-    });
-  };
 
-  const updateFilter = (filterKey, value) => setTableFilters(prev => ({...prev, [filterKey]: value}));
-  const clearAllFilters = () => setTableFilters({});
-  const updateSmartFilter = (filterKey, value) => setSmartTableFilters(prev => ({...prev, [filterKey]: value}));
-  const clearSmartFilters = () => setSmartTableFilters({});
-  const updateSummaryFilter = (filterKey, value) => setSummaryTableFilters(prev => ({...prev, [filterKey]: value}));
-  const clearSummaryFilters = () => setSummaryTableFilters({});
-  const updateExpiryFilter = (filterKey, value) => setExpiryTableFilters(prev => ({...prev, [filterKey]: value}));
-  const clearExpiryFilters = () => setExpiryTableFilters({});
-  const updateDetailFilter = (filterKey, value) => setDetailTableFilters(prev => ({...prev, [filterKey]: value}));
-  const clearDetailFilters = () => setDetailTableFilters({});
 
   useEffect(() => {
     if (data && data.length > 0) {
@@ -335,6 +290,7 @@ function App() {
   const fetchFromGoogleSheet = async () => {
     const sheetUrl = "https://docs.google.com/spreadsheets/d/1sHvEQMtt3suuxuMA0zhcXk5TYGqZzit0JvGLk1CQ0LI/export?format=csv&gid=804568597";
     const statusUrl = "https://docs.google.com/spreadsheets/d/1v4rQWn6dYPVQPd-PkhvrDNgKVnexilrR2XIUVa5RKEM/export?format=csv&gid=1425121708";
+    const invygoUrl = "https://docs.google.com/spreadsheets/d/1sHvEQMtt3suuxuMA0zhcXk5TYGqZzit0JvGLk1CQ0LI/export?format=csv&gid=1812913588";
     try {
       const res = await fetch(sheetUrl);
       const text = await res.text();
@@ -362,17 +318,30 @@ function App() {
         }
       });
       
+      const invygoRes = await fetch(invygoUrl);
+      const invygoText = await invygoRes.text();
+      const invygoRows = invygoText.split('\n').map(row => row.split(','));
+      const invygoPlates = new Set();
+      invygoRows.slice(1).forEach(row => {
+        const plateNo = row[0]; // First column is Plate No
+        if (plateNo && plateNo.trim()) {
+          invygoPlates.add(plateNo.replace(/\s/g, '').toUpperCase());
+        }
+      });
+      
       const cleaned = dataArr.map(r => {
         const plateKey = String(r["Plate No"] || "").replace(/\s/g, "").toUpperCase();
         const statusInfo = statusData[plateKey] || { status: 'Unknown', branch: 'Unknown' };
+        const isInvygoCar = invygoPlates.has(plateKey);
+        const originalRemarks = String(r.Remarks || "").trim();
         return {
           ...r,
           PlateNoClean: plateKey,
           RegExp: formatDate(r["Reg Exp"]),
           InsurExp: formatDate(r["Insur Exp"]),
           SaleDate: formatDate(r["Sale Date"]),
-          Remarks: String(r.Remarks || "").toUpperCase(),
-          isInvygo: String(r.Remarks || "").toUpperCase().includes("INVYGO"),
+          Remarks: originalRemarks || (isInvygoCar ? "INVYGO" : "YELO"),
+          isInvygo: isInvygoCar,
           Status: statusInfo.status,
           Branch: statusInfo.branch
         };
@@ -468,34 +437,33 @@ function App() {
             handleExport={handleExport}
             resetFilters={resetFilters}
           />
-          {showSummaryCards && 
+          {showSummaryCards && !showFiltered && 
             <SummaryCards 
               summaryAll={summaryAll} 
               expiryCount={expiryCount} 
               setShowSummaryDetail={setShowSummaryDetail} 
               setShowExpiryTable={setShowExpiryTable}
+              setShowFiltered={setShowFiltered}
+            />
+          }
+          {showFiltered && summaryAll && 
+            <SummaryCards 
+              summaryAll={summaryAll} 
+              expiryCount={expiryCount} 
+              setShowSummaryDetail={setShowSummaryDetail} 
+              setShowExpiryTable={setShowExpiryTable}
+              setShowFiltered={setShowFiltered}
             />
           }
           <ResultsDisplay 
             showFiltered={showFiltered}
             filtered={filtered}
-            applyTableFilters={applyFilters}
-            tableFilters={tableFilters}
-            updateFilter={updateFilter}
-            clearAllFilters={clearAllFilters}
             searchCardColor={searchCardColor}
             showExpiryTable={showExpiryTable}
             expiryCount={expiryCount}
             data={data}
-            expiryTableFilters={expiryTableFilters}
-            updateExpiryFilter={updateExpiryFilter}
-            clearExpiryFilters={clearExpiryFilters}
-            applyFilters={applyFilters}
             showSummaryDetail={showSummaryDetail}
             summaryAll={summaryAll}
-            detailTableFilters={detailTableFilters}
-            updateDetailFilter={updateDetailFilter}
-            clearDetailFilters={clearDetailFilters}
             expiryDateResult={expiryDateResult}
           />
         </>
@@ -508,10 +476,6 @@ function App() {
           setSelectedClass={setSelectedClass} 
           selectedMake={selectedMake} 
           setSelectedMake={setSelectedMake} 
-          smartTableFilters={smartTableFilters} 
-          updateSmartFilter={updateSmartFilter} 
-          clearSmartFilters={clearSmartFilters} 
-          applyFilters={applyFilters} 
         />
       }
 
@@ -520,13 +484,6 @@ function App() {
           modelSummaryAll={modelSummaryAll} 
           selectedSummaryModel={selectedSummaryModel} 
           setSelectedSummaryModel={setSelectedSummaryModel} 
-          summaryTableFilters={summaryTableFilters} 
-          updateSummaryFilter={updateSummaryFilter} 
-          clearSummaryFilters={clearSummaryFilters} 
-          detailTableFilters={detailTableFilters} 
-          updateDetailFilter={updateDetailFilter} 
-          clearDetailFilters={clearDetailFilters} 
-          applyFilters={applyFilters} 
           data={data} 
         />
       }

@@ -1,5 +1,5 @@
 import React from 'react';
-import GenericTable from './GenericTable';
+import ExcelLikeTable from './ExcelLikeTable';
 import { colorizeInvygoYelo, searchCarImage } from '../utils.jsx';
 
 const SmartNavView = ({ 
@@ -7,11 +7,7 @@ const SmartNavView = ({
   selectedClass, 
   setSelectedClass, 
   selectedMake, 
-  setSelectedMake, 
-  smartTableFilters, 
-  updateSmartFilter, 
-  clearSmartFilters, 
-  applyFilters 
+  setSelectedMake 
 }) => {
 
   const uniqueClasses = [...new Set(data.map(row => row['Class']).filter(Boolean))];
@@ -171,13 +167,9 @@ const SmartNavView = ({
             <h2 style={{ color: '#7b1fa2', fontWeight: 'bold', fontSize: '2rem', marginBottom: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '18px' }}>
                 {colorizeInvygoYelo(`Cars in ${selectedMake} (${data.filter(car => car.Class === selectedClass && car.Model === selectedMake).length})`)}
             </h2>
-            <GenericTable 
+            <ExcelLikeTable 
                 data={data.filter(car => car.Class === selectedClass && car.Model === selectedMake)}
                 columns={columns}
-                filters={smartTableFilters}
-                updateFilter={updateSmartFilter}
-                clearFilters={clearSmartFilters}
-                applyFilters={applyFilters}
             />
             <button
                 onClick={() => setSelectedMake(null)}
