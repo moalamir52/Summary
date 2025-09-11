@@ -67,7 +67,15 @@ REM ########## PART 3: DEPLOY TO GITHUB PAGES ##########
 echo [3/4] Starting deployment to GitHub Pages...
 echo.
 
-REM Step 3.1: Clean install of dependencies
+REM Step 3.1: Ensure no old processes are running
+echo  - Terminating any running Node.js processes...
+rem The following command will forcefully terminate all node.exe processes.
+rem Output is hidden because an error will be shown if no processes are found, which is expected.
+taskkill /F /IM node.exe /T >nul 2>&1
+echo  - Done.
+echo.
+
+REM Step 3.2: Clean install of dependencies
 echo  - Installing dependencies using 'npm ci'...
 call npm ci
 IF %ERRORLEVEL% NEQ 0 (
