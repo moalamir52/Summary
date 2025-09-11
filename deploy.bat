@@ -1,5 +1,4 @@
 @echo off
-setlocal ENABLEEXTENSIONS
 
 REM ##################################################################
 REM # Self-Fixing Ultimate All-in-One: Save & Deploy Script          #
@@ -26,15 +25,15 @@ echo [1/4] Preparing environment...
 echo.
 
 REM Step 1.1: Automatically fix 'dubious ownership' issue
-echo  - Adding current directory to Git's safe list...
-git config --global --add safe.directory "%CD%"
-echo  - Done.
+REM echo  - Adding current directory to Git's safe list...
+REM git config --global --add safe.directory "%CD%"
+REM echo  - Done.
 
 REM Step 1.2: Configure Git Identity
-echo  - Configuring Git identity...
-git config --global user.name %GIT_USER_NAME%
-git config --global user.email %GIT_USER_EMAIL%
-echo  - Git identity set to: %GIT_USER_NAME%
+REM echo  - Configuring Git identity...
+REM git config --global user.name %GIT_USER_NAME%
+REM git config --global user.email %GIT_USER_EMAIL%
+REM echo  - Git identity set to: %GIT_USER_NAME%
 echo.
 
 REM ########## PART 2: SAVE SOURCE CODE ##########
