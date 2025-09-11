@@ -1,3 +1,8 @@
+// Expose a global function to clear expiryDateResult and hide expiry table
+window.clearExpiryDateResult = () => {
+  if (typeof setExpiryDateResult === 'function') setExpiryDateResult(null);
+  if (typeof setShowExpiryTable === 'function') setShowExpiryTable(false);
+};
 import React, { useState, useEffect } from 'react';
 import * as XLSX from "xlsx";
 import Header from './components/Header';
@@ -8,6 +13,7 @@ import SmartNavView from './components/SmartNavView';
 import SummaryView from './components/SummaryView';
 import ExpiryModal from './components/ExpiryModal';
 import ResultsDisplay from './components/ResultsDisplay';
+import ColumnSelector from './components/ColumnSelector';
 import { average, formatDate } from './utils.jsx';
 
 function App() {
@@ -36,6 +42,13 @@ function App() {
   const [expiryFiltered, setExpiryFiltered] = useState(null);
   const [searchCardColor, setSearchCardColor] = useState('#ffe082');
   const cardColors = ['#ffe082', '#ce93d8', '#b3e5fc', '#c8e6c9', '#ffccbc', '#f8bbd0', '#fff9c4', '#b2dfdb'];
+
+  // EJAR Vehicles data states
+  const [ejarData, setEjarData] = useState([]);
+  const [mergedData, setMergedData] = useState([]);
+  const [selectedEjarColumns, setSelectedEjarColumns] = useState([]);
+  const [availableEjarColumns, setAvailableEjarColumns] = useState([]);
+  const [showColumnSelector, setShowColumnSelector] = useState(false);
 
   const handleNavigation = (newView) => {
     setSelectedSummaryModel(null); // Reset summary model when navigating
@@ -88,17 +101,28 @@ function App() {
 
   const handleExport = () => {
     let dataToExport = null;
+    let visibleColumns = null;
+    let exportContext = '';
+    // Try to get visible columns from the main table (if available)
+    if (window.getMainTableVisibleColumns) {
+      visibleColumns = window.getMainTableVisibleColumns();
+    }
+    // Determine what is being exported and set context
     if (showSummaryDetail) {
       if (showSummaryDetail === 'total') {
         dataToExport = data;
+        exportContext = 'AllCars';
       } else if (showSummaryDetail === 'invygo') {
         dataToExport = data.filter(car => car.isInvygo);
+        exportContext = 'InvygoCars';
       } else if (showSummaryDetail === 'yelo') {
         dataToExport = data.filter(car => !car.isInvygo);
+        exportContext = 'YeloCars';
       }
     }
     else if (expiryDateResult && expiryDateResult.cars && expiryDateResult.cars.length > 0) {
       dataToExport = expiryDateResult.cars;
+      exportContext = 'ExpiryDetails';
     }
     else if (showExpiryTable) {
       dataToExport = data.filter(car => {
@@ -113,70 +137,138 @@ function App() {
             else return false;
             return d <= new Date();
           });
+      exportContext = 'ExpiredCars';
     }
     else if (showFiltered && filtered.length > 0) {
       dataToExport = filtered;
+      exportContext = 'SearchResults';
     }
     if (!dataToExport || dataToExport.length === 0) {
       alert('لا يوجد بيانات للتصدير!');
       return;
     }
 
+    // Try to get visible columns from the first ExcelLikeTable instance if not set
+    if (!visibleColumns && window.getMainTableVisibleColumns) {
+      visibleColumns = window.getMainTableVisibleColumns();
+    }
+    // Fallback: use all columns in the data
+    if (!visibleColumns) {
+      visibleColumns = Object.keys(dataToExport[0] || {});
+    }
+
+    // Clean and filter data to only visible columns
     const cleanedData = dataToExport.map(row => {
       const {
-        // Internal/helper fields to be removed from export
         PlateNoClean,
         isInvygo,
-        // Fields with duplicate-like keys to be consolidated
         RegExp,
         InsurExp,
         SaleDate,
         ...rest
       } = row;
-
-      // Create a clean object for the Excel sheet
-      return {
-        ...rest,
-        "Reg Exp": RegExp || row["Reg Exp"],
-        "Insur Exp": InsurExp || row["Insur Exp"],
-        "Sale Date": SaleDate || row["Sale Date"],
-      };
+      const result = {};
+      visibleColumns.forEach(col => {
+        // Special handling for Reg Exp, Insur Exp, Sale Date
+        if (col === 'Reg Exp') result['Reg Exp'] = RegExp || row['Reg Exp'];
+        else if (col === 'Insur Exp') result['Insur Exp'] = InsurExp || row['Insur Exp'];
+        else if (col === 'Sale Date') result['Sale Date'] = SaleDate || row['Sale Date'];
+        else result[col] = row[col] !== undefined ? row[col] : '';
+      });
+      return result;
     });
 
-    const allKeys = new Set();
-    cleanedData.forEach(row => {
-        Object.keys(row).forEach(key => allKeys.add(key));
-    });
+    // Use visibleColumns order for export
+    const sortedColumns = visibleColumns;
 
-    const allColumnsArray = Array.from(allKeys);
+    // Smart file name
+    let fileName = 'Fleet_Report';
+    if (exportContext === 'SearchResults') {
+      let keyword = (typeof searchTerm === 'string' && searchTerm.trim()) ? searchTerm.trim().replace(/\s+/g, '_') : '';
+      if (keyword) fileName = `${keyword}`;
+      else fileName = 'Search_Results';
+    } else if (exportContext === 'AllCars') fileName = 'All_Cars_Details';
+    else if (exportContext === 'InvygoCars') fileName = 'Invygo_Cars_Details';
+    else if (exportContext === 'YeloCars') fileName = 'YELO_Cars_Details';
+    else if (exportContext === 'ExpiryDetails') fileName = 'Expiry_Details';
+    else if (exportContext === 'ExpiredCars') fileName = 'Expired_Cars';
+    fileName += `_${new Date().toISOString().slice(0, 10)}.xlsx`;
 
-    // Define a preferred, logical order for columns
-    const preferredOrder = [
-      "Class", "Manufacturer", "Model", "Year Model", "Plate No", "Color",
-      "Chassis no.", "Reg Exp", "Insur Exp", "Branch", "Status",
-      "Rental Rate", "Remarks"
-    ];
-
-    const sortedColumns = allColumnsArray.sort((a, b) => {
-        const indexA = preferredOrder.indexOf(a);
-        const indexB = preferredOrder.indexOf(b);
-
-        if (indexA !== -1 && indexB !== -1) return indexA - indexB; // Both in preferred list
-        if (indexA !== -1) return -1; // A is preferred, B is not
-        if (indexB !== -1) return 1;  // B is preferred, A is not
-        return a.localeCompare(b); // Neither is preferred, sort alphabetically
-    });
-
-    const finalData = cleanedData.map(row => {
-      const newRow = {};
-      sortedColumns.forEach(column => { newRow[column] = row.hasOwnProperty(column) ? row[column] : ''; });
-      return newRow;
-    });
-
-    const ws = XLSX.utils.json_to_sheet(finalData, { header: sortedColumns });
+    const ws = XLSX.utils.json_to_sheet(cleanedData, { header: sortedColumns });
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Fleet Report');
-    XLSX.writeFile(wb, `Fleet_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.utils.book_append_sheet(wb, ws, exportContext || 'Fleet Report');
+    XLSX.writeFile(wb, fileName);
+  };
+
+  // Handle EJAR file upload
+  const handleEjarFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const workbook = XLSX.read(event.target.result, { type: 'binary' });
+      const sheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[sheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      
+      if (jsonData.length > 0) {
+        setEjarData(jsonData);
+        setAvailableEjarColumns(Object.keys(jsonData[0]).filter(col => col !== 'Plate Number'));
+        setShowColumnSelector(true);
+      }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // Merge data based on plate number
+  const mergeDataByPlate = () => {
+    if (!data.length || !ejarData.length || !selectedEjarColumns.length) return;
+
+    const merged = data.map(mainRow => {
+      const plateNo = mainRow['Plate No'] || mainRow.PlateNo;
+      if (!plateNo) return mainRow;
+
+      const ejarMatch = ejarData.find(ejarRow => {
+        const ejarPlate = ejarRow['Plate Number'];
+        return ejarPlate && plateNo.toString().trim() === ejarPlate.toString().trim();
+      });
+
+      if (ejarMatch) {
+        const updatedRow = { ...mainRow };
+        selectedEjarColumns.forEach(col => {
+          // إذا كان العمود هو EJAR_Category، حدث عمود Class مباشرة
+          if (col === 'EJAR_Category') {
+            updatedRow['Class'] = ejarMatch[col];
+          } else if (col in updatedRow) {
+            updatedRow[col] = ejarMatch[col];
+          } else {
+            updatedRow[`EJAR_${col}`] = ejarMatch[col];
+          }
+        });
+        return updatedRow;
+      }
+      return mainRow;
+    });
+
+    setMergedData(merged);
+    setData(merged); // Update main data with merged data
+    setShowColumnSelector(false);
+
+    // Show the selected columns in the table automatically
+    // This assumes you have a state for visible columns in the table component or pass it as a prop
+    // If using ResultsDisplay or ExcelLikeTable directly, you may need to lift state up or trigger a refresh
+    if (window.setMainTableVisibleColumns) {
+      window.setMainTableVisibleColumns(prev => {
+        // Add selected EJAR columns (with EJAR_ prefix if not already in main data)
+        return Array.from(new Set([...prev, ...selectedEjarColumns.map(col => {
+          if (col === 'EJAR_Category') return 'Class';
+          // If the column exists in main data, use its name, else use EJAR_ prefix
+          if (merged.length && col in merged[0]) return col;
+          return `EJAR_${col}`;
+        })]));
+      });
+    }
   };
 
 
@@ -242,7 +334,7 @@ function App() {
       }
     } else if (tokens.length >= 2) {
       const fieldMap = {
-        'class': 'Class', 'cls': 'Class',
+        'class': 'Class', 'Category': 'Class',
         'manufacturer': 'Manufacturer', 'mfg': 'Manufacturer',
         'model': 'Model', 'mod': 'Model', 'mdl': 'Model',
         'color': 'Color', 'col': 'Color',
@@ -416,10 +508,17 @@ function App() {
   }
 
   const resetFilters = () => {
-    setFiltered([]); 
-    setShowFiltered(false); 
+    setFiltered([]);
+    setShowFiltered(false);
     setExpiryDateResult(null);
-    setShowExpiryTable(false); 
+    setShowExpiryTable(false);
+    setShowSummaryCards(false);
+    setShowSummaryDetail(null);
+    setSelectedSummaryModel(null);
+    setExpiryFiltered(null);
+    setExpiryModalTable(null);
+    setShowExpiryDateDetails(false);
+    setView('search');
   }
 
   return (
@@ -436,6 +535,9 @@ function App() {
             fetchFromGoogleSheet={fetchFromGoogleSheet}
             handleExport={handleExport}
             resetFilters={resetFilters}
+            handleEjarFile={handleEjarFile}
+            ejarData={ejarData}
+            setShowColumnSelector={setShowColumnSelector}
           />
           {showSummaryCards && !showFiltered && 
             <SummaryCards 
@@ -554,6 +656,18 @@ function App() {
           ×
         </button>
       )}
+
+      {/* Column Selector Modal */}
+      {showColumnSelector && (
+        <ColumnSelector
+          availableColumns={availableEjarColumns}
+          selectedColumns={selectedEjarColumns}
+          setSelectedColumns={setSelectedEjarColumns}
+          onMerge={mergeDataByPlate}
+          onCancel={() => setShowColumnSelector(false)}
+        />
+      )}
+  {/* ...existing code... */}
     </div>
   );
 }

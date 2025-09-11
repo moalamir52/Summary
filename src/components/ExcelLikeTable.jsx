@@ -1,8 +1,49 @@
 import React, { useState, useMemo } from 'react';
+import ColumnSelector from './ColumnSelector';
 
-const ExcelLikeTable = ({ data, columns, onRowClick, tableStyle }) => {
+const ExcelLikeTable = ({ data, columns, onRowClick, tableStyle, visibleColumns: visibleColumnsProp }) => {
     const [filters, setFilters] = useState({});
     const [openDropdowns, setOpenDropdowns] = useState({});
+    const [showColumnSelector, setShowColumnSelector] = useState(false);
+    // If visibleColumns prop is provided, use it as initial/default state and keep in sync
+    const getDefaultColumns = () => {
+        if (Array.isArray(visibleColumnsProp) && visibleColumnsProp.length > 0) {
+            return visibleColumnsProp;
+        }
+        return [
+            'Class',
+            'Manufacturer',
+            'Model',
+            'Year Model',
+            'Color',
+            'Plate No',
+            'Rental Rate',
+            'Reg Exp',
+            'Insur Exp',
+            'Remarks',
+            'Status',
+            'Branch',
+        ];
+    };
+    const [visibleColumns, setVisibleColumns] = useState(getDefaultColumns);
+    // Sync with prop if it changes
+    React.useEffect(() => {
+        if (Array.isArray(visibleColumnsProp) && visibleColumnsProp.length > 0) {
+            setVisibleColumns(visibleColumnsProp);
+        }
+    }, [visibleColumnsProp]);
+
+    // Expose visible columns globally for export
+    React.useEffect(() => {
+        if (typeof window !== 'undefined') {
+            window.getMainTableVisibleColumns = () => visibleColumns;
+        }
+        return () => {
+            if (typeof window !== 'undefined' && window.getMainTableVisibleColumns) {
+                delete window.getMainTableVisibleColumns;
+            }
+        };
+    }, [visibleColumns]);
 
     // Get unique values for each column
     const getUniqueValues = (columnKey) => {
@@ -65,6 +106,9 @@ const ExcelLikeTable = ({ data, columns, onRowClick, tableStyle }) => {
         }));
     };
 
+    // Filter columns to show only selected, always including default columns
+    const shownColumns = columns.filter(col => visibleColumns.includes(col.accessor || col.header));
+
     return (
         <div style={{ width: '100%', maxWidth: '1400px', overflowX: 'auto', margin: '0 auto', position: 'relative' }}>
             <table style={{
@@ -81,7 +125,11 @@ const ExcelLikeTable = ({ data, columns, onRowClick, tableStyle }) => {
             }}>
                 <thead>
                     <tr style={{ background: '#ffe082', color: '#222', fontWeight: 'bold' }}>
-                        {columns.map((col, i) => (
+                        <th style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', cursor: 'pointer', minWidth: 40 }}
+                            onClick={() => setShowColumnSelector(true)}
+                            title="Select visible columns"
+                        >#</th>
+                        {shownColumns.map((col, i) => (
                             <th key={i} style={{ padding: '6px 4px', borderBottom: '2px solid #ffe082', position: 'relative', ...col.style }}>
                                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
                                     {col.header}
@@ -100,7 +148,6 @@ const ExcelLikeTable = ({ data, columns, onRowClick, tableStyle }) => {
                                         </button>
                                     )}
                                 </div>
-                                
                                 {/* Dropdown Filter */}
                                 {i > 0 && openDropdowns[col.accessor] && (
                                     <div style={{
@@ -147,7 +194,6 @@ const ExcelLikeTable = ({ data, columns, onRowClick, tableStyle }) => {
                                                 Clear
                                             </button>
                                         </div>
-                                        
                                         {getUniqueValues(col.accessor).map(value => (
                                             <div key={value} style={{ padding: '4px 8px', display: 'flex', alignItems: 'center' }}>
                                                 <input
@@ -196,7 +242,8 @@ const ExcelLikeTable = ({ data, columns, onRowClick, tableStyle }) => {
                             }} 
                             onClick={() => onRowClick && onRowClick(row)}
                         >
-                            {columns.map((col, j) => (
+                            <td style={{ fontWeight: 'bold', color: '#7b1fa2', background: '#fff9c4' }}>{i + 1}</td>
+                            {shownColumns.map((col, j) => (
                                 <td key={j} style={{ padding: '6px 2px', borderBottom: '1px solid #ffe082', ...col.style }}>
                                     {col.cell ? col.cell(row[col.accessor] || '-', row) : (col.accessor ? (typeof col.accessor === 'function' ? col.accessor(row, i) : row[col.accessor] || '-') : '-')}
                                 </td>
@@ -218,6 +265,17 @@ const ExcelLikeTable = ({ data, columns, onRowClick, tableStyle }) => {
                         zIndex: 999
                     }}
                     onClick={() => setOpenDropdowns({})}
+                />
+            )}
+
+            {/* Column Selector Modal for columns visibility */}
+            {showColumnSelector && (
+                <ColumnSelector
+                    availableColumns={columns.map(col => col.accessor || col.header).filter(Boolean)}
+                    selectedColumns={visibleColumns}
+                    setSelectedColumns={setVisibleColumns}
+                    onMerge={() => setShowColumnSelector(false)}
+                    onCancel={() => setShowColumnSelector(false)}
                 />
             )}
         </div>

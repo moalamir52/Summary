@@ -1,3 +1,5 @@
+import * as XLSX from "xlsx";
+
 // 🎨 دالة تلوين النصوص - تحويل INVYGO و YELO لألوان مميزة
 export const colorizeInvygoYelo = (text) => {
   if (!text) return text;

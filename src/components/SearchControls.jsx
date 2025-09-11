@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SearchControls = ({ searchTerm, setSearchTerm, handleSearch, fetchFromGoogleSheet, handleExport, resetFilters }) => {
+const SearchControls = ({ searchTerm, setSearchTerm, handleSearch, fetchFromGoogleSheet, handleExport, resetFilters, handleEjarFile, ejarData, setShowColumnSelector }) => {
   return (
     <div style={{
       padding: '24px 0 18px 0',
@@ -27,7 +27,7 @@ const SearchControls = ({ searchTerm, setSearchTerm, handleSearch, fetchFromGoog
             style={{ padding: '12px 16px', borderRadius: '12px', border: '2px solid #6a1b9a', fontSize: '16px', width: '350px', fontFamily: 'Montserrat, Poppins, sans-serif', outline: 'none', transition: 'border-color 0.3s' }}
           />
         </div>
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center' }}>
           <button 
             onClick={handleSearch} 
             style={{ padding: '12px 24px', borderRadius: '10px', background: '#6a1b9a', color: '#fff', border: 'none', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(106, 27, 154, 0.3)' }}
@@ -36,7 +36,7 @@ const SearchControls = ({ searchTerm, setSearchTerm, handleSearch, fetchFromGoog
           >🔍 Search</button>
           <button 
             onClick={fetchFromGoogleSheet} 
-            style={{ padding: '12px 24px', borderRadius: '10px', background: '#f5e728ff', color: '#6a1b9a', border: '2px solid #ffd600', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(255, 214, 0, 0.3)' }}
+            style={{ padding: '12px 24px', borderRadius: '10px', background: '#ffd416ff', color: '#6a1b9a', border: '2px solid #6a1b9a', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(255, 214, 0, 0.3)' }}
             onMouseOver={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 6px 20px rgba(255, 214, 0, 0.4)'; }}
             onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 12px rgba(255, 214, 0, 0.3)'; }}
           >🔄 Reload</button>
@@ -48,10 +48,33 @@ const SearchControls = ({ searchTerm, setSearchTerm, handleSearch, fetchFromGoog
           >📤 Export</button>
           <button 
             onClick={resetFilters} 
-            style={{ padding: '12px 24px', borderRadius: '10px', background: '#f5e728ff', color: '#6a1b9a', border: '2px solid #ffd600', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(255, 214, 0, 0.3)' }}
+            style={{ padding: '12px 24px', borderRadius: '10px', background: '#ffd416ff', color: '#6a1b9a', border: '2px solid #6a1b9a', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(255, 214, 0, 0.3)' }}
             onMouseOver={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 6px 20px rgba(255, 214, 0, 0.4)'; }}
             onMouseOut={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 12px rgba(255, 214, 0, 0.3)'; }}
           >🔄 Reset</button>
+          {/* EJAR File Upload Button */}
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            padding: '12px 24px', borderRadius: '10px', background: '#6a1b9a', color: '#fff', border: 'none',
+            fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px',
+            transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(106, 27, 154, 0.3)'
+          }}>
+            <span role="img" aria-label="upload">📤</span> EJAR File
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleEjarFile}
+              style={{ display: 'none' }}
+            />
+          </label>
+          {/* Re-select EJAR Columns button */}
+          {ejarData && ejarData.length > 0 && (
+            <button
+              onClick={() => setShowColumnSelector(true)}
+              style={{ padding: '12px 24px', borderRadius: '10px', background: '#6a1b9a', color: '#fff', border: 'none', fontFamily: 'Montserrat, sans-serif', fontWeight: '600', cursor: 'pointer', fontSize: '14px', transition: 'all 0.3s ease', boxShadow: '0 4px 12px rgba(106, 27, 154, 0.3)' }}
+            >✅ ReColumns</button>
+         
+          )}
         </div>
       </div>
     </div>

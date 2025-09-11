@@ -10,10 +10,9 @@ const SummaryView = ({
     data 
 }) => {
 
-    const summaryColumns = [
-        { header: '#', accessor: (row, i) => i + 1 },
-        { header: 'Manufacturer', accessor: 'manufacturer' },
-        { header: 'Model', accessor: 'model', cell: (val) => (
+  const summaryColumns = [
+    { header: 'Manufacturer', accessor: 'manufacturer' },
+    { header: 'Model', accessor: 'model', cell: (val) => (
             <span>
                 {val} <span onClick={() => searchCarImage(val)} style={{cursor: 'pointer'}}>🔍</span>
             </span>
@@ -35,26 +34,49 @@ const SummaryView = ({
         )},
     ];
 
-    const detailColumns = [
-        { header: '#', accessor: (row, i) => i + 1 },
-        { header: 'Class', accessor: 'Class' },
-        { header: 'Manufacturer', accessor: 'Manufacturer' },
-        { header: 'Model', accessor: 'Model', cell: (val, row) => (
-            <span>
-                {colorizeInvygoYelo(val)} <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>🔍</span>
-            </span>
-        )},
-        { header: 'Year', accessor: 'Year Model' },
-        { header: 'Color', accessor: 'Color' },
-        { header: 'Plate No', accessor: 'Plate No' },
-        { header: 'Rental Rate', accessor: 'Rental Rate' },
-        { header: 'Chassis no.', accessor: 'Chassis no.' },
-        { header: 'Reg Exp', accessor: 'Reg Exp' },
-        { header: 'Insur Exp', accessor: 'Insur Exp' },
-        { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
-        { header: 'Status', accessor: 'Status' },
-        { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
+    // Generate dynamic columns including EJAR columns
+  const generateDetailColumns = (dataSet) => {
+    // If EJAR_Category exists, map it to Class
+    let hasEjarCategory = false;
+    if (dataSet && dataSet.length > 0 && 'EJAR_Category' in dataSet[0]) {
+      hasEjarCategory = true;
+    }
+    const baseColumns = [
+      hasEjarCategory
+        ? { header: 'Class', accessor: 'EJAR_Category' }
+        : { header: 'Class', accessor: 'Class' },
+      { header: 'Manufacturer', accessor: 'Manufacturer' },
+      { header: 'Model', accessor: 'Model', cell: (val, row) => (
+        <span>
+          {colorizeInvygoYelo(val)} <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>🔍</span>
+        </span>
+      )},
+      { header: 'Year', accessor: 'Year Model' },
+      { header: 'Color', accessor: 'Color' },
+      { header: 'Plate No', accessor: 'Plate No' },
+      { header: 'Rental Rate', accessor: 'Rental Rate' },
+      { header: 'Chassis no.', accessor: 'Chassis no.' },
+      { header: 'Reg Exp', accessor: 'Reg Exp' },
+      { header: 'Insur Exp', accessor: 'Insur Exp' },
+      { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
+      { header: 'Status', accessor: 'Status' },
+      { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
     ];
+
+    // Add EJAR columns if they exist in the data
+    if (dataSet && dataSet.length > 0) {
+      const sampleRow = dataSet[0];
+      const ejarColumns = Object.keys(sampleRow)
+        .filter(key => key.startsWith('EJAR_'))
+        .map(key => ({
+          header: key.replace('EJAR_', ''),
+          accessor: key,
+          style: { backgroundColor: '#e8f5e8', fontWeight: 'bold' }
+        }));
+      return [...baseColumns, ...ejarColumns];
+    }
+    return baseColumns;
+  };
 
     const getFilteredData = () => {
         if (!selectedSummaryModel) return [];
@@ -76,6 +98,8 @@ const SummaryView = ({
           <ExcelLikeTable 
             data={modelSummaryAll}
             columns={summaryColumns}
+            // Show only manufacturer, model, total, invygo, yellow by default
+            visibleColumns={['manufacturer', 'model', 'total', 'invygo', 'yellow']}
           />
         </>
       ) : (
@@ -90,10 +114,13 @@ const SummaryView = ({
                     ({getFilteredData().length})
                 </span>
             </h2>
-            <ExcelLikeTable 
-                data={getFilteredData()}
-                columns={detailColumns}
-            />
+      <ExcelLikeTable 
+        data={getFilteredData()}
+        columns={generateDetailColumns(getFilteredData())}
+        visibleColumns={generateDetailColumns(getFilteredData())
+          .map(col => col.accessor || col.header)
+          .filter(header => header !== 'Chassis no.')}
+      />
           <button
             onClick={() => setSelectedSummaryModel(null)}
             style={{

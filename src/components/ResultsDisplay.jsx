@@ -14,22 +14,40 @@ const ResultsDisplay = ({
     expiryDateResult
 }) => {
 
-    const columns = [
-        { header: '#', accessor: (row, i) => i + 1 },
-        { header: 'Class', accessor: 'Class' },
-        { header: 'Manufacturer', accessor: 'Manufacturer' },
-        { header: 'Model', accessor: 'Model', cell: (val, row) => <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>{colorizeInvygoYelo(val)} 🔍</span> },
-        { header: 'Year', accessor: 'Year Model' },
-        { header: 'Color', accessor: 'Color' },
-        { header: 'Plate No', accessor: 'Plate No' },
-        { header: 'Rental Rate', accessor: 'Rental Rate' },
-        { header: 'Chassis no.', accessor: 'Chassis no.' },
-        { header: 'Reg Exp', accessor: 'Reg Exp' },
-        { header: 'Insur Exp', accessor: 'Insur Exp' },
-        { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
-        { header: 'Status', accessor: 'Status' },
-        { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
+    // Generate dynamic columns including EJAR columns
+  const generateColumns = (dataSet) => {
+    const baseColumns = [
+      { header: 'Class', accessor: 'Class' },
+      { header: 'Manufacturer', accessor: 'Manufacturer' },
+      { header: 'Model', accessor: 'Model', cell: (val, row) => <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>{colorizeInvygoYelo(val)} 🔍</span> },
+      { header: 'Year', accessor: 'Year Model' },
+      { header: 'Color', accessor: 'Color' },
+      { header: 'Plate No', accessor: 'Plate No' },
+      { header: 'Rental Rate', accessor: 'Rental Rate' },
+      { header: 'Chassis no.', accessor: 'Chassis no.' },
+      { header: 'Reg Exp', accessor: 'Reg Exp' },
+      { header: 'Insur Exp', accessor: 'Insur Exp' },
+      { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
+      { header: 'Status', accessor: 'Status' },
+      { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
     ];
+
+    // Add EJAR columns if they exist in the data
+    if (dataSet && dataSet.length > 0) {
+      const sampleRow = dataSet[0];
+      const ejarColumns = Object.keys(sampleRow)
+        .filter(key => key.startsWith('EJAR_'))
+        .map(key => ({
+          header: key.replace('EJAR_', ''),
+          accessor: key,
+          style: { backgroundColor: '#e8f5e8', fontWeight: 'bold' }
+        }));
+      return [...baseColumns, ...ejarColumns];
+    }
+    return baseColumns;
+  };
+
+
 
     if (showFiltered && filtered.length > 0) {
         return (
@@ -79,13 +97,20 @@ const ResultsDisplay = ({
                     <div><strong>Remarks:</strong> <span style={{ color: '#222' }}>{filtered[0].Remarks || '-'}</span></div>
                     <div><strong>Status:</strong> <span style={{ color: '#222' }}>{filtered[0].Status || 'Unknown'}</span></div>
                     <div><strong>Branch:</strong> <span style={{ color: '#222' }}>{filtered[0].Branch || 'Unknown'}</span></div>
+                    
+                    {/* EJAR Data */}
+                    {Object.keys(filtered[0]).filter(key => key.startsWith('EJAR_')).map(key => (
+                      <div key={key} style={{ backgroundColor: '#e8f5e8', padding: '4px 8px', borderRadius: '4px', margin: '2px 0' }}>
+                        <strong>{key.replace('EJAR_', '')}:</strong> <span style={{ color: '#222' }}>{filtered[0][key] || '-'}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : (
                 <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
                   <ExcelLikeTable 
                       data={filtered}
-                      columns={columns}
+                      columns={generateColumns(filtered)}
                   />
                 </div>
               )}
@@ -112,7 +137,7 @@ const ResultsDisplay = ({
                 </h2>
                 <ExcelLikeTable 
                     data={expiredCars}
-                    columns={columns}
+                    columns={generateColumns(expiredCars)}
                 />
             </div>
         )
@@ -124,7 +149,7 @@ const ResultsDisplay = ({
                 </h2>
                 <ExcelLikeTable 
                     data={expiryDateResult.cars}
-                    columns={columns}
+                    columns={generateColumns(expiryDateResult.cars)}
                 />
             </div>
         )
@@ -149,7 +174,7 @@ const ResultsDisplay = ({
                 </h2>
                 <ExcelLikeTable 
                     data={summaryData}
-                    columns={columns}
+                    columns={generateColumns(summaryData)}
                 />
             </div>
         )

@@ -15,25 +15,43 @@ const SmartNavView = ({
     ? [...new Set(data.filter(r => r.Class === selectedClass).map(r => r['Manufacturer']).filter(Boolean))]
     : [];
 
-  const columns = [
-    { header: '#', accessor: (row, i) => i + 1 },
-    { header: 'Class', accessor: 'Class' },
-    { header: 'Manufacturer', accessor: 'Manufacturer' },
-    { header: 'Model', accessor: 'Model', cell: (val, row) => (
-        <span>
-            {colorizeInvygoYelo(val)} <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>🔍</span>
-        </span>
-    )},
-    { header: 'Year', accessor: 'Year Model' },
-    { header: 'Plate No', accessor: 'Plate No' },
-    { header: 'Color', accessor: 'Color' },
-    { header: 'Reg Expiry', accessor: 'RegExp' },
-    { header: 'Insur Expiry', accessor: 'InsurExp' },
-    { header: 'Mortgage', accessor: 'Mortgage' },
-    { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
-    { header: 'Status', accessor: 'Status' },
-    { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
-  ];
+  // Generate dynamic columns including EJAR columns
+  const generateColumns = (dataSet) => {
+    const baseColumns = [
+      { header: 'Class', accessor: 'Class' },
+      { header: 'Manufacturer', accessor: 'Manufacturer' },
+      { header: 'Model', accessor: 'Model', cell: (val, row) => (
+          <span>
+              {colorizeInvygoYelo(val)} <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>🔍</span>
+          </span>
+      )},
+      { header: 'Year', accessor: 'Year Model' },
+      { header: 'Plate No', accessor: 'Plate No' },
+      { header: 'Color', accessor: 'Color' },
+      { header: 'Reg Expiry', accessor: 'RegExp' },
+      { header: 'Insur Expiry', accessor: 'InsurExp' },
+      { header: 'Mortgage', accessor: 'Mortgage' },
+      { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
+      { header: 'Status', accessor: 'Status' },
+      { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
+    ];
+
+    // Add EJAR columns if they exist in the data
+    if (dataSet && dataSet.length > 0) {
+        const sampleRow = dataSet[0];
+        const ejarColumns = Object.keys(sampleRow)
+            .filter(key => key.startsWith('EJAR_'))
+            .map(key => ({
+                header: key.replace('EJAR_', ''),
+                accessor: key,
+                style: { backgroundColor: '#e8f5e8', fontWeight: 'bold' }
+            }));
+        
+        return [...baseColumns, ...ejarColumns];
+    }
+    
+    return baseColumns;
+  };
 
   return (
     <div>
@@ -169,7 +187,7 @@ const SmartNavView = ({
             </h2>
             <ExcelLikeTable 
                 data={data.filter(car => car.Class === selectedClass && car.Model === selectedMake)}
-                columns={columns}
+                columns={generateColumns(data.filter(car => car.Class === selectedClass && car.Model === selectedMake))}
             />
             <button
                 onClick={() => setSelectedMake(null)}
