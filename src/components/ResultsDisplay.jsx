@@ -11,15 +11,36 @@ const ResultsDisplay = ({
     data,
     showSummaryDetail,
     summaryAll,
-    expiryDateResult
+    expiryDateResult,
+    onClassClick,
+    onManufacturerClick,
+    onStatusClick
 }) => {
+
+    const handleClassClick = (className) => {
+        if (onClassClick) {
+            onClassClick(className);
+        }
+    };
+
+    const handleManufacturerClick = (manufacturer) => {
+        if (onManufacturerClick) {
+            onManufacturerClick(manufacturer);
+        }
+    };
+
+    const handleStatusClick = (status) => {
+        if (onStatusClick) {
+            onStatusClick(status);
+        }
+    };
 
     // Generate dynamic columns including EJAR columns
   const generateColumns = (dataSet) => {
     const baseColumns = [
-      { header: 'Class', accessor: 'Class' },
-      { header: 'Manufacturer', accessor: 'Manufacturer' },
-      { header: 'Model', accessor: 'Model', cell: (val, row) => <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>{colorizeInvygoYelo(val)} 🔍</span> },
+      { header: 'Class', accessor: 'Class', cell: (val) => <span onClick={() => handleClassClick(val)} style={{cursor: 'pointer', color: '#1976d2', textDecoration: 'underline'}}>{val}</span> },
+      { header: 'Manufacturer', accessor: 'Manufacturer', cell: (val) => <span onClick={() => handleManufacturerClick(val)} style={{cursor: 'pointer', color: '#1976d2', textDecoration: 'underline'}}>{val}</span> },
+      { header: 'Model', accessor: 'Model', cell: (val, row) => <span>{colorizeInvygoYelo(val)} <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>🔍</span></span> },
       { header: 'Year', accessor: 'Year Model' },
       { header: 'Color', accessor: 'Color' },
       { header: 'Plate No', accessor: 'Plate No' },
@@ -28,7 +49,7 @@ const ResultsDisplay = ({
       { header: 'Reg Exp', accessor: 'Reg Exp' },
       { header: 'Insur Exp', accessor: 'Insur Exp' },
       { header: 'Remarks', accessor: 'Remarks', cell: (val) => colorizeInvygoYelo(val) },
-      { header: 'Status', accessor: 'Status' },
+      { header: 'Status', accessor: 'Status', cell: (val) => <span onClick={() => handleStatusClick(val)} style={{cursor: 'pointer', color: '#1976d2', textDecoration: 'underline'}}>{val}</span> },
       { header: 'Branch', accessor: 'Branch', style: { minWidth: '120px', width: '120px' } },
     ];
 
@@ -82,9 +103,9 @@ const ResultsDisplay = ({
                     }}
                   >
                     <div style={{ fontWeight: 'bold', fontSize: '1.45rem', color: '#6a1b9a', marginBottom: 12, letterSpacing: '1px' }}>
-                      🚗 <span onClick={() => searchCarImage(filtered[0].Model, filtered[0]['Year Model'], filtered[0].Color)} style={{cursor: 'pointer'}}>{filtered[0].Model || '-'} 🔍</span>
+                      🚗 <span>{filtered[0].Model || '-'} <span onClick={() => searchCarImage(filtered[0].Model, filtered[0]['Year Model'], filtered[0].Color)} style={{cursor: 'pointer'}}>🔍</span></span>
                     </div>
-                    <div><strong>Class:</strong> <span style={{ color: '#222' }}>{filtered[0].Class || '-'}</span></div>
+                    <div><strong>Class:</strong> <span onClick={() => handleClassClick(filtered[0].Class)} style={{ color: '#1976d2', cursor: 'pointer', textDecoration: 'underline' }}>{filtered[0].Class || '-'}</span></div>
                     <div><strong>Manufacturer:</strong> <span style={{ color: '#222' }}>{filtered[0].Manufacturer || '-'}</span></div>
                     <div><strong>Model:</strong> <span style={{ color: '#222' }}>{filtered[0].Model || '-'}</span></div>
                     <div><strong>Year:</strong> <span style={{ color: '#222' }}>{filtered[0]["Year Model"] || '-'}</span></div>

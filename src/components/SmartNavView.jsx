@@ -22,7 +22,7 @@ const SmartNavView = ({
       { header: 'Manufacturer', accessor: 'Manufacturer' },
       { header: 'Model', accessor: 'Model', cell: (val, row) => (
           <span>
-              {colorizeInvygoYelo(val)} <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>🔍</span>
+              <span>{colorizeInvygoYelo(val)} <span onClick={() => searchCarImage(val, row['Year Model'], row['Color'])} style={{cursor: 'pointer'}}>🔍</span></span>
           </span>
       )},
       { header: 'Year', accessor: 'Year Model' },

@@ -11,8 +11,8 @@ const SummaryCards = ({ summaryAll, expiryCount, setShowSummaryDetail, setShowEx
         onClick={() => {
           setShowSummaryDetail('total');
           setShowExpiryTable(false);
-          setShowFiltered && setShowFiltered(false);
-          if (window.clearExpiryDateResult) window.clearExpiryDateResult();
+          setShowFiltered && setShowFiltered(true);
+          if (window.setExpiryDateResult) window.setExpiryDateResult(null);
         }}
         title="Show all cars details"
       >
@@ -23,8 +23,8 @@ const SummaryCards = ({ summaryAll, expiryCount, setShowSummaryDetail, setShowEx
         onClick={() => {
           setShowSummaryDetail('invygo');
           setShowExpiryTable(false);
-          setShowFiltered && setShowFiltered(false);
-          if (window.clearExpiryDateResult) window.clearExpiryDateResult();
+          setShowFiltered && setShowFiltered(true);
+          if (window.setExpiryDateResult) window.setExpiryDateResult(null);
         }}
         title="Show Invygo cars details"
       >
@@ -35,8 +35,8 @@ const SummaryCards = ({ summaryAll, expiryCount, setShowSummaryDetail, setShowEx
         onClick={() => {
           setShowSummaryDetail('yelo');
           setShowExpiryTable(false);
-          setShowFiltered && setShowFiltered(false);
-          if (window.clearExpiryDateResult) window.clearExpiryDateResult();
+          setShowFiltered && setShowFiltered(true);
+          if (window.setExpiryDateResult) window.setExpiryDateResult(null);
         }}
         title="Show YELO cars details"
       >
@@ -49,6 +49,7 @@ const SummaryCards = ({ summaryAll, expiryCount, setShowSummaryDetail, setShowEx
           setShowExpiryTable(true);
           setShowSummaryDetail(null);
           setShowFiltered && setShowFiltered(false);
+          if (window.clearExpiryDateResult) window.clearExpiryDateResult();
         }}
         title="Show expired cars details"
       >

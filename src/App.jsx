@@ -1,8 +1,13 @@
-// Expose a global function to clear expiryDateResult and hide expiry table
+// Expose global functions
 window.clearExpiryDateResult = () => {
   if (typeof setExpiryDateResult === 'function') setExpiryDateResult(null);
   if (typeof setShowExpiryTable === 'function') setShowExpiryTable(false);
 };
+
+// Make setExpiryDateResult available globally
+if (typeof window !== 'undefined') {
+  window.setExpiryDateResult = null;
+}
 import React, { useState, useEffect } from 'react';
 import * as XLSX from "xlsx";
 import Header from './components/Header';
@@ -51,24 +56,55 @@ function App() {
   const [showColumnSelector, setShowColumnSelector] = useState(false);
 
   const handleNavigation = (newView) => {
-    setSelectedSummaryModel(null); // Reset summary model when navigating
-    setSelectedClass(null); // Reset smart view class when navigating
-    setSelectedMake(null); // Reset smart view make when navigating
-    setFiltered([]); // Clear search results
-    setShowFiltered(false); // Hide search results
-    setSearchTerm(''); // Clear search term
-    setShowSummaryDetail(null); // Clear summary detail filters
-    setShowExpiryTable(false); // Hide expiry table
-    setExpiryDateResult(null); // Clear expiry date results
+    setSelectedSummaryModel(null);
+    setSelectedClass(null);
+    setSelectedMake(null);
+    setFiltered([]);
+    setShowFiltered(false);
+    setSearchTerm('');
+    setShowSummaryDetail(null);
+    setShowExpiryTable(false);
+    setExpiryDateResult(null);
     setView(newView);
   };
 
+  const handleExpiryTableClick = () => {
+    setExpiryDateResult(null); // Clear date-based expiry results
+    setShowExpiryTable(true);
+    setShowFiltered(false);
+    setShowSummaryDetail(null);
+  };
+
+  const handleExpiryDateSearch = () => {
+    setExpiryModalOpen(false);
+    setView('search');
+    setShowExpiryTable(false);
+    const selected = new Date(expiryDate);
+    const cars = data.filter(car => {
+      const exp = car.RegExp || car["Reg Exp"];
+      if (!exp) return false;
+      let d;
+      if (typeof exp === "string" && exp.includes("-")) d = new Date(exp);
+      else if (typeof exp === "string" && exp.includes("/")) {
+        const [day, mon, yr] = exp.split("/");
+        d = new Date(`${yr}-${mon}-${day}`);
+      } else if (exp instanceof Date) d = exp;
+      else return false;
+      return d <= selected;
+    });
+    setExpiryDateResult({ cars, date: expiryDate });
+  };
+
   const analyze = (rows) => {
+    if (!rows || rows.length === 0) return;
+    
     const validRows = rows.filter(r => r.Model && r["Plate No"]);
     const total = validRows.length;
     const invygo = validRows.filter(r => r.isInvygo).length;
     const modelCounts = {};
     const modelInvygo = {};
+    
+    // معالجة واحدة للبيانات
     validRows.forEach(r => {
       if (!r.Model || r.Model === "56" || r.Model === "") return;
       const key = `${r.Manufacturer || 'Unknown'}-${r.Model}`;
@@ -96,6 +132,7 @@ function App() {
 
     setSummary({ total, invygo });
     setModelSummary(modelSummaryData);
+    setModelSummaryAll(modelSummaryData);
     setShowSummaryCards(true);
   };
 
@@ -275,40 +312,19 @@ function App() {
 
   useEffect(() => {
     if (data && data.length > 0) {
+      // استخدام analyze الموجودة بدلاً من تكرار الكود
       const validRows = data.filter(r => r.Model && r["Plate No"]);
       const total = validRows.length;
       const invygo = validRows.filter(r => r.isInvygo).length;
-      const modelCounts = {};
-      const modelInvygo = {};
-      validRows.forEach(r => {
-        if (!r.Model || r.Model === "56" || r.Model === "") return;
-        const key = `${r.Manufacturer || 'Unknown'}-${r.Model}`;
-        modelCounts[key] = (modelCounts[key] || 0) + 1;
-        if (r.isInvygo) modelInvygo[key] = (modelInvygo[key] || 0) + 1;
-      });
-
-      const modelSummaryData = Object.keys(modelCounts).map(key => {
-        const [manufacturer, model] = key.split('-');
-        const relatedCars = validRows.filter(r => (r.Manufacturer || 'Unknown') === manufacturer && r.Model === model);
-        const daily = average(relatedCars.map(r => Number(r.RentPerDay)));
-        const monthly = average(relatedCars.map(r => Number(r.RentPerMonth)));
-        const yearly = average(relatedCars.map(r => Number(r.RentPerYear)));
-        return {
-          manufacturer,
-          model,
-          total: modelCounts[key],
-          invygo: modelInvygo[key] || 0,
-          daily: daily ? daily.toFixed(0) : '-',
-          monthly: monthly ? monthly.toFixed(0) : '-',
-          yearly: yearly ? yearly.toFixed(0) : '-',
-          yellow: modelCounts[key] - (modelInvygo[key] || 0)
-        };
-      }).sort((a, b) => b.total - a.total);
-
       setSummaryAll({ total, invygo });
-      setModelSummaryAll(modelSummaryData);
+      
+      // حساب modelSummaryAll فقط إذا لم يكن موجود
+      if (modelSummaryAll.length === 0) {
+        analyze(data);
+        setModelSummaryAll(modelSummary);
+      }
     }
-  }, [data]);
+  }, [data.length]); // تغيير dependency إلى data.length بدلاً من data
 
   const handleSearch = () => {
     setSearchCardColor(cardColors[Math.floor(Math.random() * cardColors.length)]);
@@ -384,43 +400,52 @@ function App() {
     const statusUrl = "https://docs.google.com/spreadsheets/d/1v4rQWn6dYPVQPd-PkhvrDNgKVnexilrR2XIUVa5RKEM/export?format=csv&gid=1425121708";
     const invygoUrl = "https://docs.google.com/spreadsheets/d/1sHvEQMtt3suuxuMA0zhcXk5TYGqZzit0JvGLk1CQ0LI/export?format=csv&gid=1812913588";
     try {
-      const res = await fetch(sheetUrl);
-      const text = await res.text();
+      // تحميل متزامن للبيانات
+      const [mainRes, statusRes, invygoRes] = await Promise.all([
+        fetch(sheetUrl),
+        fetch(statusUrl),
+        fetch(invygoUrl)
+      ]);
+      
+      const [text, statusText, invygoText] = await Promise.all([
+        mainRes.text(),
+        statusRes.text(),
+        invygoRes.text()
+      ]);
+      
+      // معالجة البيانات الرئيسية
       const rows = text.split('\n').map(row => row.split(','));
       const headers = rows[0];
       const dataArr = rows.slice(1).map(row =>
-        Object.fromEntries(row.map((cell, i) => [headers[i].trim(), cell]))
+        Object.fromEntries(row.map((cell, i) => [headers[i]?.trim() || '', cell]))
       );
       
-      const statusRes = await fetch(statusUrl);
-      const statusText = await statusRes.text();
+      // معالجة بيانات الحالة
       const statusRows = statusText.split('\n').map(row => row.split(','));
       const statusHeaders = statusRows[0];
       const statusData = {};
       statusRows.slice(1).forEach(row => {
-        const statusObj = Object.fromEntries(row.map((cell, i) => [statusHeaders[i]?.trim(), cell]));
+        const statusObj = Object.fromEntries(row.map((cell, i) => [statusHeaders[i]?.trim() || '', cell]));
         const plateNo = statusObj['Plate No'] || statusObj['plate no'] || statusObj['Plate no'] || statusObj['Plate Number'];
-        const status = statusObj['Status'] || statusObj['status'] || statusObj['STATUS'];
-        const branch = statusObj['Branch'] || statusObj['branch'] || statusObj['BRANCH'];
-        if (plateNo && plateNo.trim()) {
+        if (plateNo?.trim()) {
           statusData[plateNo.replace(/\s/g, '').toUpperCase()] = {
-            status: status || 'Unknown',
-            branch: branch || 'Unknown'
+            status: statusObj['Status'] || statusObj['status'] || statusObj['STATUS'] || 'Unknown',
+            branch: statusObj['Branch'] || statusObj['branch'] || statusObj['BRANCH'] || 'Unknown'
           };
         }
       });
       
-      const invygoRes = await fetch(invygoUrl);
-      const invygoText = await invygoRes.text();
+      // معالجة بيانات INVYGO
       const invygoRows = invygoText.split('\n').map(row => row.split(','));
       const invygoPlates = new Set();
       invygoRows.slice(1).forEach(row => {
-        const plateNo = row[0]; // First column is Plate No
-        if (plateNo && plateNo.trim()) {
+        const plateNo = row[0];
+        if (plateNo?.trim()) {
           invygoPlates.add(plateNo.replace(/\s/g, '').toUpperCase());
         }
       });
       
+      // دمج البيانات في معالجة واحدة
       const cleaned = dataArr.map(r => {
         const plateKey = String(r["Plate No"] || "").replace(/\s/g, "").toUpperCase();
         const statusInfo = statusData[plateKey] || { status: 'Unknown', branch: 'Unknown' };
@@ -438,17 +463,21 @@ function App() {
           Branch: statusInfo.branch
         };
       });
+      
       setData(cleaned);
       setFiltered([]);
-      analyze(cleaned);
       setShowFiltered(false);
+      // تأخير analyze للنهاية
+      setTimeout(() => analyze(cleaned), 0);
     } catch (err) {
-      alert("Error fetching data from Google Sheets");
+      alert("خطأ في تحميل البيانات");
     }
   };
 
   useEffect(() => {
     fetchFromGoogleSheet();
+    // Make setExpiryDateResult available globally
+    window.setExpiryDateResult = setExpiryDateResult;
   }, []);
 
   useEffect(() => {
@@ -483,29 +512,11 @@ function App() {
 
   useEffect(() => {
     if (filtered.length === 0 && searchTerm === "") {
-      analyze(data);
       setShowSummaryCards(true);
     }
-  }, [filtered, searchTerm, data]);
+  }, [filtered, searchTerm]);
 
-  const handleExpiryDateSearch = () => {
-    setExpiryModalOpen(false);
-    setView('search');
-    const selected = new Date(expiryDate);
-    const cars = data.filter(car => {
-      const exp = car.RegExp || car["Reg Exp"];
-      if (!exp) return false;
-      let d;
-      if (typeof exp === "string" && exp.includes("-")) d = new Date(exp);
-      else if (typeof exp === "string" && exp.includes("/")) {
-        const [day, mon, yr] = exp.split("/");
-        d = new Date(`${yr}-${mon}-${day}`);
-      } else if (exp instanceof Date) d = exp;
-      else return false;
-      return d <= selected;
-    })
-    setExpiryDateResult({ cars, date: expiryDate });
-  }
+
 
   const resetFilters = () => {
     setFiltered([]);
@@ -567,6 +578,19 @@ function App() {
             showSummaryDetail={showSummaryDetail}
             summaryAll={summaryAll}
             expiryDateResult={expiryDateResult}
+            onClassClick={(className) => {
+              setSelectedClass(className);
+              setView('smart');
+            }}
+            onManufacturerClick={(manufacturer) => {
+              setSelectedMake(manufacturer);
+              setView('smart');
+            }}
+            onStatusClick={(status) => {
+              const statusResults = data.filter(car => car.Status === status);
+              setFiltered(statusResults);
+              setShowFiltered(true);
+            }}
           />
         </>
       )}
